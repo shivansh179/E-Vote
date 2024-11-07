@@ -18,9 +18,13 @@ interface AddCandidateProps {
 }
 
 interface DisplayCandidatesProps {
-  candidates: string;
-  handleDeleteCandidate: string;
+  candidates: { id: string ; name: string }[]; // Use array of objects
+  handleDeleteCandidate: (id: string) => void; // This should be a function
+
 }
+
+
+
 // Component to add a temporary voter
 const AddVoter: React.FC<AddVoterProps>  = ({ setVoterEmail, setVoterPassword, handleAddVoter }) => (
   <div className="bg-white p-6 rounded-lg shadow-md mb-8">
@@ -93,13 +97,17 @@ const DisplayCandidates: React.FC<DisplayCandidatesProps> = ({ candidates, handl
   </div>
 );
 
+interface Vote {
+  candidateId: string;
+}
+
 // Component to display votes
-const DisplayVotes = ({ votes }) => (
+const DisplayVotes: React.FC<{ votes: Vote[] }> = ({ votes }) => (
   <div className="bg-white p-6 rounded-lg shadow-md">
     <h2 className="text-xl font-semibold mb-4 text-gray-700">Vote Results</h2>
     <ul>
       {votes.length > 0 ? (
-        votes.map((vote, index) => (
+        votes.map((vote: { candidateId: any; }, index: Key | null | undefined) => (
           <li key={index} className="p-2 border-b border-gray-200 mb-2">
             {`Candidate ID: ${vote.candidateId}`}
           </li>

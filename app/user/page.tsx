@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import { useState, useEffect } from "react";
 import { db } from "../../firebase";
@@ -9,8 +9,8 @@ const UserPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [candidates, setCandidates] = useState([]);
-  const [userId, setUserId] = useState(null);
+  const [candidates, setCandidates] = useState<{ id: string; name: string }[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
   const [hasVoted, setHasVoted] = useState(false);
 
   const router = useRouter();
@@ -42,12 +42,27 @@ const UserPage = () => {
     }
   };
 
-  const fetchCandidates = async () => {
-    const candidatesSnapshot = await getDocs(collection(db, "candidates"));
-    setCandidates(candidatesSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
-  };
+  // const fetchCandidates = async () => {
+  //   const candidatesSnapshot = await getDocs(collection(db, "candidates"));
+  //   setCandidates(candidatesSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+  // };
 
-  const checkIfVoted = async (uid) => {
+  const fetchCandidates = async () => {
+  const candidatesSnapshot = await getDocs(collection(db, "candidates"));
+  const candidatesList = candidatesSnapshot.docs.map((doc) => {
+    const data = doc.data();
+    // Check if 'name' exists, and if not, provide a default value
+    return {
+      id: doc.id,
+      name: data.name || "Unnamed Candidate", // Provide a default name if missing
+      ...data, // Spread other data fields if any
+    };
+  });
+  setCandidates(candidatesList);
+};
+
+
+  const checkIfVoted = async (uid: string) => {
     const voteQuery = query(collection(db, "votes"), where("userId", "==", uid));
     const voteSnapshot = await getDocs(voteQuery);
     if (!voteSnapshot.empty) {
@@ -55,7 +70,7 @@ const UserPage = () => {
     }
   };
 
-  const handleVote = async (candidateId) => {
+  const handleVote = async (candidateId: string) => {
     if (!userId) return;
     try {
       await addDoc(collection(db, "votes"), {
