@@ -1,12 +1,28 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, AwaitedReactNode, JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal } from "react";
 import { db, auth } from "../../firebase";
 import { collection, addDoc, getDocs, doc, deleteDoc, query, where, getDoc } from "firebase/firestore";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 
+interface AddVoterProps {
+  setVoterEmail: (email: string) => void;
+  setVoterPassword: (password: string) => void;
+  handleAddVoter: () => void;
+}
+
+interface AddCandidateProps {
+  candidateName: string;
+  setCandidateName: (name: string) => void;
+  handleAddCandidate: () => void;
+}
+
+interface DisplayCandidatesProps {
+  candidates: string;
+  handleDeleteCandidate: string;
+}
 // Component to add a temporary voter
-const AddVoter = ({ setVoterEmail, setVoterPassword, handleAddVoter }) => (
+const AddVoter: React.FC<AddVoterProps>  = ({ setVoterEmail, setVoterPassword, handleAddVoter }) => (
   <div className="bg-white p-6 rounded-lg shadow-md mb-8">
     <h2 className="text-xl font-semibold mb-4 text-gray-700">Add Temporary Voter</h2>
     <input
@@ -31,7 +47,7 @@ const AddVoter = ({ setVoterEmail, setVoterPassword, handleAddVoter }) => (
 );
 
 // Component to add a candidate
-const AddCandidate = ({ candidateName, setCandidateName, handleAddCandidate }) => (
+const AddCandidate: React.FC<AddCandidateProps> = ({ candidateName, setCandidateName, handleAddCandidate }) => (
   <div className="bg-white p-6 rounded-lg shadow-md mb-8">
     <h2 className="text-xl font-semibold mb-4 text-gray-700">Add Candidate</h2>
     <input
@@ -51,12 +67,12 @@ const AddCandidate = ({ candidateName, setCandidateName, handleAddCandidate }) =
 );
 
 // Component to display candidates
-const DisplayCandidates = ({ candidates, handleDeleteCandidate }) => (
+const DisplayCandidates: React.FC<DisplayCandidatesProps> = ({ candidates, handleDeleteCandidate }) => (
   <div className="bg-white p-6 rounded-lg shadow-md mb-8">
     <h2 className="text-xl font-semibold mb-4 text-gray-700">Candidates</h2>
     {candidates.length > 0 ? (
       <ul>
-        {candidates.map((candidate) => (
+        {candidates.map((candidate: { id: Key | null | undefined; name: string | number | bigint | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<AwaitedReactNode> | null | undefined; }) => (
           <li
             key={candidate.id}
             className="flex justify-between items-center p-4 border-b border-gray-200 mb-2"
