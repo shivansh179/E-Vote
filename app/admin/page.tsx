@@ -76,21 +76,24 @@ const DisplayCandidates: React.FC<DisplayCandidatesProps> = ({ candidates, handl
     <h2 className="text-xl font-semibold mb-4 text-gray-700">Candidates</h2>
     {candidates.length > 0 ? (
       <ul>
-        {candidates.map((candidate: { id: Key | null | undefined; name: string | number | bigint | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<AwaitedReactNode> | null | undefined; }) => (
-          <li
-            key={candidate.id}
-            className="flex justify-between items-center p-4 border-b border-gray-200 mb-2"
-          >
-            <span className="text-lg font-semibold">{candidate.name}</span>
-            <button
-              onClick={() => handleDeleteCandidate(candidate.id)}
-              className="bg-red-500 text-white p-2 rounded-md hover:bg-red-600 transition"
-            >
-              Delete
-            </button>
-          </li>
-        ))}
-      </ul>
+  {candidates.map((candidate) => (
+    candidate.id ? (
+      <li
+        key={candidate.id}
+        className="flex justify-between items-center p-4 border-b border-gray-200 mb-2"
+      >
+        <span className="text-lg font-semibold">{candidate.name}</span>
+        <button
+          onClick={() => handleDeleteCandidate(candidate.id as string)}
+          className="bg-red-500 text-white p-2 rounded-md hover:bg-red-600 transition"
+        >
+          Delete
+        </button>
+      </li>
+    ) : null
+  ))}
+</ul>
+
     ) : (
       <p className="text-gray-500">No candidates added yet.</p>
     )}
