@@ -1,101 +1,91 @@
-import Image from "next/image";
+"use client"
 
-export default function Home() {
+import React from "react";
+
+const LandingPage = () => {
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <div className="bg-gray-100 min-h-screen">
+      {/* Header Section */}
+      <section className="bg-indigo-600 text-white py-20 text-center">
+        <h1 className="text-5xl font-semibold mb-4">Welcome to India's Election App</h1>
+        <p className="text-xl mb-6">Empowering Democracy with Digital Voting</p>
+        <button
+          className="bg-white text-indigo-600 px-6 py-3 rounded-full text-lg font-semibold hover:bg-gray-200 transition"
+          onClick={() => window.scrollTo(0, document.getElementById('about').offsetTop)}
+        >
+          Learn More
+        </button>
+      </section>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      {/* About Section */}
+      <section id="about" className="bg-white py-16 px-8">
+        <h2 className="text-3xl font-semibold text-center text-indigo-600 mb-8">Why Do We Need Digital Voting?</h2>
+        <div className="max-w-3xl mx-auto text-lg text-gray-700 space-y-6">
+          <p>
+            Elections are the cornerstone of any democracy. They provide citizens the power to choose their leaders, 
+            shaping the future of the nation. However, the process of voting can be cumbersome and time-consuming.
+          </p>
+          <p>
+            Our digital voting app is designed to streamline the election process. It provides a secure, accessible, 
+            and efficient platform for every eligible citizen to cast their vote with ease. It ensures transparency, 
+            accuracy, and accessibility for all.
+          </p>
+          <p>
+            Join us in revolutionizing India's election system. Together, we can create a more inclusive and efficient 
+            democratic process.
+          </p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+      </section>
+
+      {/* Features Section */}
+      <section className="bg-indigo-50 py-16 px-8">
+        <h2 className="text-3xl font-semibold text-center text-indigo-600 mb-8">Features of the Election App</h2>
+        <div className="max-w-4xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="bg-white p-6 rounded-lg shadow-lg text-center">
+            <h3 className="text-2xl font-semibold text-indigo-600 mb-4">Secure Voting</h3>
+            <p className="text-gray-700">
+              Our app ensures that each vote is securely stored and counted, providing an authentic election experience.
+            </p>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow-lg text-center">
+            <h3 className="text-2xl font-semibold text-indigo-600 mb-4">Easy Access</h3>
+            <p className="text-gray-700">
+              Vote from anywhere with just a few clicks. Our platform is accessible on mobile, tablet, and desktop devices.
+            </p>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow-lg text-center">
+            <h3 className="text-2xl font-semibold text-indigo-600 mb-4">Instant Results</h3>
+            <p className="text-gray-700">
+              Get real-time election results and track the progress as votes are counted.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Call to Action Section */}
+      <section className="bg-indigo-600 text-white py-16 px-8 text-center">
+        <h2 className="text-3xl font-semibold mb-4">Get Started Today</h2>
+        <p className="text-lg mb-8">Join thousands of others who are empowering democracy with digital voting!</p>
+        <button
+          className="bg-white text-indigo-600 px-6 py-3 rounded-full text-lg font-semibold hover:bg-gray-200 transition"
+          onClick={() => window.scrollTo(0, document.getElementById('signup').offsetTop)}
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+          Register Now
+        </button>
+      </section>
+
+      {/* Footer Section */}
+      <footer className="bg-gray-800 text-white py-6 text-center">
+        <p>&copy; 2024 ElectionApp | All Rights Reserved</p>
+        <p>
+          Follow us on: 
+          <a href="#" className="text-indigo-400 ml-2">Facebook</a> |
+          <a href="#" className="text-indigo-400 ml-2">Twitter</a> |
+          <a href="#" className="text-indigo-400 ml-2">Instagram</a>
+        </p>
       </footer>
     </div>
   );
-}
+};
+
+export default LandingPage;
