@@ -3,12 +3,12 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,  // Fixed variable name here
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGINGSENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  apiKey: "AIzaSyCQh_hz9fujaiU7DNi_1vp_8d4a4Qkltss",
+  authDomain: "e-voting-fe2c3.firebaseapp.com",
+  projectId: "e-voting-fe2c3",
+  storageBucket: "e-voting-fe2c3.appspot.com",  // Fixed variable name here
+  messagingSenderId: "298772738878",
+  appId: "1:298772738878:web:799b13e3d190fe2be8326f",
 };
 
 const app = initializeApp(firebaseConfig);
