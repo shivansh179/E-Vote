@@ -52,7 +52,7 @@ const Navbar = () => {
         </button>
       <div className="flex items-center gap-10">
         <div className="hidden md:flex space-x-8">
-          <Link href="/capture">
+          <Link href="/admin">
             <p className="text-gray-700 font-semibold hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600 rounded dark:text-white">
               Admin
             </p>
@@ -102,7 +102,7 @@ const Navbar = () => {
 
             <div className="mt-8 space-y-6">
               {/* Navigation Links */}
-              <Link href="/capture" onClick={closeMobileMenu}>
+              <Link href="/admin" onClick={closeMobileMenu}>
                 <p className="text-gray-700 font-semibold hover:text-blue-600 dark:text-white">
                   Admin
                 </p>

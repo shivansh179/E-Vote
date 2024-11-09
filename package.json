@@ -7,15 +7,14 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-      "postinstall": "npm install --legacy-peer-deps"
+    "postinstall": "npm install --legacy-peer-deps"
   },
   "dependencies": {
     "e-voting-app": "file:",
     "firebase": "^11.0.1",
     "next": "15.0.2",
     "react": "19.0.0-rc-02c0e824-20241028",
-    "react-dom": "19.0.0-rc-02c0e824-20241028",
-    "react-webcam": "^7.2.0"
+    "react-dom": "19.0.0-rc-02c0e824-20241028"
   },
   "devDependencies": {
     "@types/node": "^20",
