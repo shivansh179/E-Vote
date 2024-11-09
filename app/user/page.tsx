@@ -86,6 +86,7 @@ const UserPage = () => {
   };
 
   return (
+     
     <div className="min-h-screen bg-gradient-to-br from-blue-100 to-blue-50 flex items-center justify-center">
       <div className="max-w-md w-full p-8 rounded-lg shadow-lg bg-white">
         {!isAuthenticated ? (
@@ -119,7 +120,8 @@ const UserPage = () => {
           <div className="text-center">
             <h2 className="text-xl font-semibold text-gray-800">You have already voted. Thank you!</h2>
           </div>
-        ) : (
+          ) : (
+              
           <div>
             <h1 className="text-3xl font-bold text-center text-blue-600 mb-6">Vote for a Candidate</h1>
             <div className="space-y-4">
@@ -145,7 +147,8 @@ const UserPage = () => {
           </div>
         )}
       </div>
-    </div>
+      </div>
+     
   );
 };
 
