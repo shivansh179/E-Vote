@@ -1,79 +1,64 @@
 "use client";
 
 import { useState } from "react";
-import { auth } from "../../firebase";
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
 import { useRouter } from "next/navigation";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../../firebase"; // Adjust the import based on your firebase config
+import { useTheme } from "@/components/ThemeContext";
 
-const AuthPage = () => {
+const AdminLoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isNewUser, setIsNewUser] = useState(false); // Toggle between sign-in and sign-up
-  const [error, setError] = useState<string | null>(null);
-
+  const [error, setError] = useState("");
   const router = useRouter();
+  const { theme } = useTheme();
 
-  const handleAuth = async () => {
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
     try {
-      if (isNewUser) {
-        // Sign up
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        console.log("User signed up:", userCredential.user);
-        alert("Account created successfully. You can now log in.");
-        setIsNewUser(false);
-      } else {
-        // Sign in
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        console.log("User signed in:", userCredential.user);
-        router.push("/user"); // Redirect to the user page on successful login
-      }
+      await signInWithEmailAndPassword(auth, email, password);
+      router.push("/admin"); // Redirect to the admin page on successful login
     } catch (error) {
-      console.error("Error with authentication", error);
-      setError("Authentication failed. Please check your email and password.");
+      setError("Invalid email or password. Please try again.");
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 to-blue-50">
-      <div className="max-w-md w-full p-8 rounded-lg shadow-lg bg-white">
-        <h1 className="text-3xl font-bold text-center text-blue-600">
-          {isNewUser ? "Sign Up" : "Sign In"}
-        </h1>
-        {error && <p className="text-red-500 text-center mt-2">{error}</p>}
-        <div className="space-y-4 mt-6">
+    <div className={`min-h-screen flex items-center justify-center ${theme === "light" ? "bg-gray-100" : "bg-gray-900 text-gray-200"}`}>
+      <div className={`w-full max-w-md p-8 rounded-lg shadow-lg ${theme === "light" ? "bg-white" : "bg-gray-800"}`}>
+        <h1 className="text-2xl font-semibold text-center mb-6">Admin Login</h1>
+        <form onSubmit={handleLogin} className="space-y-4">
+          {error && <p className="text-red-500 text-center">{error}</p>}
           <input
             type="email"
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+            required
+            className={`w-full p-3 border rounded-md focus:outline-none focus:border-blue-500 ${
+              theme === "light" ? "text-gray-900" : "text-black bg-white"
+            }`} // Ensures black text in dark mode
           />
           <input
             type="password"
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+            required
+            className={`w-full p-3 border rounded-md focus:outline-none focus:border-blue-500 ${
+              theme === "light" ? "text-gray-900" : "text-black bg-white"
+            }`} // Ensures black text in dark mode
           />
           <button
-            onClick={handleAuth}
-            className="w-full bg-blue-500 text-white font-semibold py-2 rounded-lg hover:bg-blue-600 transition"
+            type="submit"
+            className="w-full bg-blue-600 text-white p-3 rounded-md hover:bg-blue-700 transition"
           >
-            {isNewUser ? "Sign Up" : "Sign In"}
+            Login
           </button>
-        </div>
-        <p
-          className="text-center mt-4 text-blue-600 cursor-pointer hover:underline"
-          onClick={() => {
-            setIsNewUser(!isNewUser);
-            setError(null);
-          }}
-        >
-          {isNewUser ? "Already have an account? Sign In" : "New user? Sign Up"}
-        </p>
+        </form>
       </div>
     </div>
   );
 };
 
-export default AuthPage;
+export default AdminLoginPage;

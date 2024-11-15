@@ -15,7 +15,6 @@ const AdminPage = () => {
   const [candidateName, setCandidateName] = useState("");
   const [candidates, setCandidates] = useState<any[]>([]);
   const [votes, setVotes] = useState<any[]>([]);
-  const [voterDetails, setVoterDetails] = useState<any>(null);
   const [candidateIdForVoter, setCandidateIdForVoter] = useState("");
   const [userDetails, setUserDetails] = useState<any>(null);
 
@@ -24,7 +23,7 @@ const AdminPage = () => {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
+      if (user && user.email === "prashansa.erica@gmail.com") { // Replace with the actual admin email
         setIsAuthenticated(true);
       } else {
         router.push("/auth");
@@ -125,7 +124,7 @@ const AdminPage = () => {
   };
 
   if (!isAuthenticated) {
-    return null;
+    return null; // Render nothing while checking authentication
   }
 
   // Inline AddVoter component
