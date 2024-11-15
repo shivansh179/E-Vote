@@ -137,7 +137,10 @@ const AdminLoginPage = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full p-3 border rounded-md focus:outline-none focus:border-blue-500"
+              className={`w-full p-3 border rounded-md focus:outline-none focus:border-blue-500 ${
+                theme === "light" ? "text-gray-900" : "bg-gray-700"
+              }`}
+              style={{ color: theme === "dark" ? "white" : "inherit" }}
             />
             <input
               type="password"
@@ -145,7 +148,10 @@ const AdminLoginPage = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full p-3 border rounded-md focus:outline-none focus:border-blue-500"
+              className={`w-full p-3 border rounded-md focus:outline-none focus:border-blue-500 ${
+                theme === "light" ? "text-gray-900" : "bg-gray-700"
+              }`}
+              style={{ color: theme === "dark" ? "white" : "inherit" }}
             />
             <button
               type="submit"
