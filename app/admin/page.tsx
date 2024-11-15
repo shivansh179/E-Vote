@@ -23,7 +23,7 @@ const AdminPage = () => {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user && user.email === "prashansa.erica@gmail.com") { // Replace with the actual admin email
+      if (user && user.email === "prashansa.erica@gmail.com") {
         setIsAuthenticated(true);
       } else {
         router.push("/auth");
@@ -124,127 +124,114 @@ const AdminPage = () => {
   };
 
   if (!isAuthenticated) {
-    return null; // Render nothing while checking authentication
+    return null;
   }
 
-  // Inline AddVoter component
-  const AddVoter = () => (
-    <div className={`bg-white p-6 rounded-lg shadow-md mb-8 ${theme === "light" ? "bg-gray-100" : "bg-gray-900 border-2 border-white"}`}>
-      <h2 className={`text-xl font-semibold mb-4 text-gray-700 ${theme === "light" ? "text-black" : "text-white"}`}>Add Temporary Voter</h2>
-      <input
-        type="email"
-        placeholder="Voter Email"
-        onChange={(e) => setVoterEmail(e.target.value)}
-        className="p-3 border border-gray-300 rounded-md mb-4 w-full"
-      />
-      <input
-        type="password"
-        placeholder="Voter Password"
-        onChange={(e) => setVoterPassword(e.target.value)}
-        className="p-3 border border-gray-300 rounded-md mb-4 w-full"
-      />
-      <button
-        onClick={handleAddVoter}
-        className="w-full bg-blue-600 text-white p-3 rounded-md hover:bg-blue-700 transition"
-      >
-        Add Voter
-      </button>
-    </div>
-  );
-
-  // Inline AddCandidate component
-  const AddCandidate = () => (
-    <div className={`bg-white p-6 rounded-lg shadow-md mb-8 ${theme === "light" ? "bg-gray-100" : "bg-gray-900 border-2 border-white"}`}>
-      <h2 className={`text-xl font-semibold mb-4 text-gray-700 ${theme === "light" ? "text-black" : "text-white"}`}>Add Candidate</h2>
-      <input
-        type="text"
-        placeholder="Candidate Name"
-        value={candidateName}
-        onChange={(e) => setCandidateName(e.target.value)}
-        className="p-3 border border-gray-300 rounded-md mb-4 w-full"
-      />
-      <button
-        onClick={handleAddCandidate}
-        className="w-full bg-green-600 text-white p-3 rounded-md hover:bg-green-700 transition"
-      >
-        Add Candidate
-      </button>
-    </div>
-  );
-
-  // Inline DisplayCandidates component
-  const DisplayCandidates = () => (
-    <div className={`bg-white p-6 rounded-lg shadow-md mb-8 ${theme === "light" ? "bg-gray-100" : "bg-gray-900 border-2 border-white"}`}>
-      <h2 className={`text-xl font-semibold mb-4 text-gray-700 ${theme === "light" ? "text-black" : "text-white"}`}>Candidates</h2>
-      {candidates.length > 0 ? (
-        <ul>
-          {candidates.map((candidate) => (
-            candidate.id ? (
-              <li
-                key={candidate.id}
-                className="flex justify-between items-center p-4 border-b border-gray-200 mb-2"
-              >
-                <span className={`text-lg font-semibold ${theme === "light" ? "text-black" : "text-white"}`}>{candidate.name}</span>
-                <button
-                  onClick={() => handleDeleteCandidate(candidate.id)}
-                  className="bg-red-500 text-white p-2 rounded-md hover:bg-red-600 transition"
-                >
-                  Delete
-                </button>
-              </li>
-            ) : null
-          ))}
-        </ul>
-      ) : (
-        <p className="text-gray-500">No candidates added yet.</p>
-      )}
-    </div>
-  );
-
-  // Inline DisplayVotes component
-  const DisplayVotes = () => (
-    <div className={`bg-white p-6 rounded-lg shadow-md ${theme === "light" ? "bg-gray-100" : "bg-gray-900 border-2 border-white"}`}>
-      <h2 className={`text-xl font-semibold mb-4 text-gray-700 ${theme === "light" ? "text-black" : "text-white"}`}>Vote Results</h2>
-      <ul>
-        {votes.length > 0 ? (
-          votes.map((vote, index) => (
-            <li key={index} className={`p-2 border-b border-gray-200 mb-2 ${theme === "light" ? "text-black" : "text-white"}`}>
-              {`Candidate ID: ${vote.candidateId}`}
-            </li>
-          ))
-        ) : (
-          <p className="text-gray-500">No votes yet.</p>
-        )}
-      </ul>
-    </div>
-  );
+  // Styling classes for light and dark themes
+  const containerStyle = theme === "light" ? "bg-gray-100 text-gray-900" : "bg-gray-900 text-gray-200";
+  const boxStyle = theme === "light" ? "bg-white" : "bg-gray-800 border border-gray-700";
+  const inputStyle = theme === "light" ? "text-gray-900" : "text-black bg-gray-100";
+  const buttonStyle = theme === "light" ? "bg-blue-600 hover:bg-blue-700" : "bg-blue-500 hover:bg-blue-600";
 
   return (
     <>
       <Navbar />
-      <div className={`bg-gray-100 min-h-screen p-8 ${theme === "light" ? "bg-gray-100" : "bg-gray-900"}`}>
+      <div className={`min-h-screen p-8 ${containerStyle}`}>
         <h1 className="text-3xl font-semibold text-center text-indigo-600 mb-8">Admin Dashboard</h1>
-        <AddVoter />
-        <AddCandidate />
-        <DisplayCandidates />
-        <DisplayVotes />
-        {/* Get Voter Details */}
-        <div className={`bg-white p-6 mt-10 rounded-lg shadow-md mb-8 ${theme === "light" ? "bg-gray-100" : "bg-gray-900 border-2 border-white"}`}>
-          <h2 className={`text-xl font-semibold mb-4 text-gray-700 ${theme === "light" ? "text-black" : "text-white"}`}>Search Voter by Candidate ID</h2>
+        
+        <div className={`${boxStyle} p-6 rounded-lg shadow-md mb-8`}>
+          <h2 className="text-xl font-semibold mb-4">Add Temporary Voter</h2>
+          <input
+            type="email"
+            placeholder="Voter Email"
+            onChange={(e) => setVoterEmail(e.target.value)}
+            className={`w-full p-3 border rounded-md mb-4 ${inputStyle}`}
+          />
+          <input
+            type="password"
+            placeholder="Voter Password"
+            onChange={(e) => setVoterPassword(e.target.value)}
+            className={`w-full p-3 border rounded-md mb-4 ${inputStyle}`}
+          />
+          <button
+            onClick={handleAddVoter}
+            className={`w-full ${buttonStyle} text-white p-3 rounded-md transition`}
+          >
+            Add Voter
+          </button>
+        </div>
+
+        <div className={`${boxStyle} p-6 rounded-lg shadow-md mb-8`}>
+          <h2 className="text-xl font-semibold mb-4">Add Candidate</h2>
+          <input
+            type="text"
+            placeholder="Candidate Name"
+            value={candidateName}
+            onChange={(e) => setCandidateName(e.target.value)}
+            className={`w-full p-3 border rounded-md mb-4 ${inputStyle}`}
+          />
+          <button
+            onClick={handleAddCandidate}
+            className={`w-full ${buttonStyle} text-white p-3 rounded-md transition`}
+          >
+            Add Candidate
+          </button>
+        </div>
+
+        <div className={`${boxStyle} p-6 rounded-lg shadow-md mb-8`}>
+          <h2 className="text-xl font-semibold mb-4">Candidates</h2>
+          {candidates.length > 0 ? (
+            <ul>
+              {candidates.map((candidate) => (
+                candidate.id ? (
+                  <li key={candidate.id} className="flex justify-between items-center p-4 border-b border-gray-200 mb-2">
+                    <span className={`${theme === "light" ? "text-black" : "text-white"}`}>{candidate.name}</span>
+                    <button
+                      onClick={() => handleDeleteCandidate(candidate.id)}
+                      className="bg-red-500 text-white p-2 rounded-md hover:bg-red-600 transition"
+                    >
+                      Delete
+                    </button>
+                  </li>
+                ) : null
+              ))}
+            </ul>
+          ) : (
+            <p className="text-gray-500">No candidates added yet.</p>
+          )}
+        </div>
+
+        <div className={`${boxStyle} p-6 rounded-lg shadow-md mb-8`}>
+          <h2 className="text-xl font-semibold mb-4">Vote Results</h2>
+          {votes.length > 0 ? (
+            <ul>
+              {votes.map((vote, index) => (
+                <li key={index} className="p-2 border-b border-gray-200 mb-2">
+                  {`Candidate ID: ${vote.candidateId}`}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-gray-500">No votes yet.</p>
+          )}
+        </div>
+
+        <div className={`${boxStyle} p-6 rounded-lg shadow-md`}>
+          <h2 className="text-xl font-semibold mb-4">Search Voter by Candidate ID</h2>
           <input
             type="text"
             placeholder="Enter Candidate ID"
             onChange={(e) => setCandidateIdForVoter(e.target.value)}
-            className="p-3 border border-gray-300 rounded-md mb-4 w-full"
+            className={`w-full p-3 border rounded-md mb-4 ${inputStyle}`}
           />
           <button
             onClick={handleGetVoterDetails}
-            className="w-full bg-blue-600 text-white p-3 rounded-md hover:bg-blue-700 transition"
+            className={`w-full ${buttonStyle} text-white p-3 rounded-md transition`}
           >
             Get Voter Details
           </button>
           {userDetails && (
-            <div className="mt-4">
+            <div className="mt-4 text-left">
               <h3 className="font-semibold">Voter Details:</h3>
               <p><strong>Email:</strong> {userDetails.email}</p>
               <p><strong>Role:</strong> {userDetails.role}</p>
