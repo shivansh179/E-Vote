@@ -17,7 +17,7 @@ const AdminLoginPage = () => {
   const { theme } = useTheme();
 
   // Define the correct pattern for pattern login
-  const correctPattern: number[] = [1, 2, 3, 6]; // Example pattern
+  const correctPattern: number[] = [0,1,2,5]; // Example pattern
 
   // Debugging log to check pattern generation
   useEffect(() => {
