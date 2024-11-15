@@ -60,7 +60,7 @@ const LandingPage = () => {
           </h2>
           <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             <img
-              src="https://media.istockphoto.com/id/173932687/photo/united-we-vote.jpg?s=612x612&w=0&k=20&c=Jy6M3eootYN112fdb3Hk9dTL_aMjLNu8GxCjhH_lIlg="
+              src="/vote.jpg"
               alt="Digital Voting Illustration"
               className="rounded-lg shadow-lg w-full h-auto hover:scale-105 transition transform duration-300"
             />
