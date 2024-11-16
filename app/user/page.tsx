@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { db } from "../../firebase";
-import { collection, query, where, getDocs, CollectionReference, DocumentData } from "firebase/firestore";
+import { collection, query, where, getDocs,  CollectionReference, DocumentData, setDoc, doc } from "firebase/firestore";
 import { Blockchain } from "../../blockchain";
 import { Block } from "../../blockchain";
 
@@ -66,31 +66,22 @@ const UserPage: React.FC = () => {
   };
 
   const handleVote = async (candidateId: string) => {
-    if (!userId) return;
-
     try {
-      const voteQuery = query(collection(db, "votes"), where("userId", "==", userId));
-      const voteSnapshot = await getDocs(voteQuery);
-
-      if (!voteSnapshot.empty) {
-        alert("You have already voted!");
-        return;
-      }
-
-      const voteData = {
-        userId,
-        candidateId,
-        timestamp: new Date().toISOString(),
-      };
-
-      votingBlockchain.addBlock(voteData);
-
-      await addDoc(collection(db, "votes"), {
+      const voteRef = doc(collection(db, "votes")); // Create a new document reference
+      await setDoc(voteRef, {
         userId,
         candidateId,
         timestamp: new Date().toISOString(),
       });
-
+  
+      // Update the voting blockchain (optional, based on your implementation)
+      votingBlockchain.addBlock({
+        userId,
+        candidateId,
+        timestamp: new Date().toISOString(),
+      });
+  
+      // Show "Thank You" page by updating state
       setHasVoted(true);
       alert("Thank you for voting! Your vote is securely recorded.");
     } catch (error) {
@@ -98,6 +89,7 @@ const UserPage: React.FC = () => {
       alert("Failed to vote. Please try again.");
     }
   };
+  
 
   const loadBlockchain = async () => {
     try {
