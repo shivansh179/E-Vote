@@ -5,6 +5,8 @@
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
+    "typeRoots": ["node_modules/@types", "./node_modules/@tensorflow-models"],
+
     "noEmit": true,
     "esModuleInterop": true,
     "module": "esnext",

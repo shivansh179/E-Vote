@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { db, auth } from "../../firebase";
-import { collection, addDoc, getDocs, doc, deleteDoc } from "firebase/firestore";
+import { collection, getDocs, doc, deleteDoc, addDoc } from "firebase/firestore";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import Navbar from "@/components/Navbar";
 import { useTheme } from "@/components/ThemeContext";
@@ -15,10 +15,12 @@ const AdminPage = () => {
   const [candidateName, setCandidateName] = useState("");
   const [candidates, setCandidates] = useState<any[]>([]);
   const [voteCounts, setVoteCounts] = useState<{ [key: string]: number }>({});
+  const [blockchainData, setBlockchainData] = useState<any[]>([]);
 
   const router = useRouter();
   const { theme } = useTheme();
 
+  // Check if the admin is authenticated
   useEffect(() => {
     const checkAuthStatus = async () => {
       const user = auth.currentUser;
@@ -31,6 +33,7 @@ const AdminPage = () => {
     checkAuthStatus();
   }, [router]);
 
+  // Fetch candidates, votes, and blockchain data
   useEffect(() => {
     const fetchCandidatesAndVotes = async () => {
       const candidatesSnapshot = await getDocs(collection(db, "candidates"));
@@ -53,9 +56,29 @@ const AdminPage = () => {
       setVoteCounts(voteCountsMap);
     };
 
+    const fetchBlockchainData = async () => {
+      try {
+        const blockchainSnapshot = await getDocs(collection(db, "blockchain"));
+        const allBlockchainData: any[] = [];
+
+        blockchainSnapshot.forEach((doc) => {
+          allBlockchainData.push({
+            documentId: doc.id, // Include document ID
+            chain: doc.data()?.chain || [],
+          });
+        });
+
+        setBlockchainData(allBlockchainData);
+      } catch (error) {
+        console.error("Error fetching blockchain data", error);
+      }
+    };
+
     fetchCandidatesAndVotes();
+    fetchBlockchainData();
   }, []);
 
+  // Add a voter
   const handleAddVoter = async () => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, voterEmail, voterPassword);
@@ -74,6 +97,7 @@ const AdminPage = () => {
     }
   };
 
+  // Add a candidate
   const handleAddCandidate = async () => {
     try {
       if (candidateName.trim() === "") {
@@ -83,7 +107,6 @@ const AdminPage = () => {
       const newCandidateRef = await addDoc(collection(db, "candidates"), { name: candidateName });
       const newCandidate = { id: newCandidateRef.id, name: candidateName };
 
-      // Update the local state with the new candidate
       setCandidates((prevCandidates) => [...prevCandidates, newCandidate]);
       setVoteCounts((prevVoteCounts) => ({ ...prevVoteCounts, [newCandidate.id]: 0 }));
 
@@ -95,6 +118,7 @@ const AdminPage = () => {
     }
   };
 
+  // Delete a candidate
   const handleDeleteCandidate = async (candidateId: string) => {
     try {
       await deleteDoc(doc(db, "candidates", candidateId));
@@ -115,6 +139,7 @@ const AdminPage = () => {
     return null;
   }
 
+  // Styling
   const containerStyle = theme === "light" ? "bg-gray-100 text-gray-900" : "bg-gray-900 text-gray-200";
   const boxStyle = theme === "light" ? "bg-white" : "bg-gray-800 border border-gray-700";
   const inputStyle = theme === "light" ? "text-gray-900" : "text-black bg-gray-100";
@@ -169,29 +194,47 @@ const AdminPage = () => {
 
         <div className={`${boxStyle} p-6 rounded-lg shadow-md mb-8`}>
           <h2 className="text-xl font-semibold mb-4">Candidates and Votes</h2>
-          <div className="w-full">
-            <div className="grid grid-cols-3 gap-4 font-semibold mb-2 text-gray-700">
-              <div>Candidate Name</div>
-              <div>Vote Count</div>
-              <div>Action</div>
+          <ul>
+            {candidates.map((candidate) => (
+              <li key={candidate.id} className="p-4 border-b border-gray-200 flex justify-between items-center">
+                <span>{candidate.name}</span>
+                <span>Votes: {voteCounts[candidate.id] || 0}</span>
+                <button
+                  onClick={() => handleDeleteCandidate(candidate.id)}
+                  className="bg-red-500 text-white py-1 px-4 rounded-md hover:bg-red-600 transition"
+                >
+                  Delete
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className={`${boxStyle} p-6 rounded-lg shadow-md`}>
+          <h2 className="text-xl font-semibold mb-4">Blockchain Data</h2>
+          {blockchainData.map((document) => (
+            <div key={document.documentId} className="mb-6">
+              <h3 className="text-lg font-semibold mb-2">Document ID: {document.documentId}</h3>
+              <ul>
+                {document.chain.map((block: any, index: number) => (
+                  <li key={index} className="p-4 border-b border-gray-200">
+                    <p>
+                      <strong>Block #{block.index}</strong>
+                    </p>
+                    <p>
+                      <strong>Timestamp:</strong> {new Date(block.timestamp).toLocaleString()}
+                    </p>
+                    <p>
+                      <strong>Previous Hash:</strong> {block.previousHash}
+                    </p>
+                    <p>
+                      <strong>Hash:</strong> {block.hash}
+                    </p>
+                  </li>
+                ))}
+              </ul>
             </div>
-            <ul>
-              {candidates.map((candidate) => (
-                <li key={candidate.id} className="grid grid-cols-3 gap-4 items-center p-4 border-b border-gray-200">
-                  <span className={`${theme === "light" ? "text-black" : "text-white"}`}>{candidate.name}</span>
-                  <span className={`${theme === "light" ? "text-black" : "text-white"}`}>
-                    Votes: {voteCounts[candidate.id] || 0}
-                  </span>
-                  <button
-                    onClick={() => handleDeleteCandidate(candidate.id)}
-                    className="bg-red-500 text-white py-1 px-4 rounded-md hover:bg-red-600 transition"
-                  >
-                    Delete
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
+          ))}
         </div>
       </div>
     </>

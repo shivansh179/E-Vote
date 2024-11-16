@@ -2,18 +2,20 @@
 
 import { useState, useEffect } from "react";
 import { db } from "../../firebase";
-import { collection, query, where, getDocs, addDoc } from "firebase/firestore";
-import { useRouter } from "next/navigation";
+import { collection, query, where, getDocs, CollectionReference, DocumentData } from "firebase/firestore";
+import { Blockchain } from "../../blockchain";
+import { Block } from "../../blockchain";
 
-const UserPage = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+const votingBlockchain = new Blockchain();
+
+const UserPage: React.FC = () => {
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [candidates, setCandidates] = useState<{ id: string; name: string }[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
-  const [hasVoted, setHasVoted] = useState(false);
-
-  const router = useRouter();
+  const [hasVoted, setHasVoted] = useState<boolean>(false);
+  const [blockchainData, setBlockchainData] = useState<Block[]>([]);
 
   const handleSignIn = async () => {
     try {
@@ -30,6 +32,7 @@ const UserPage = () => {
           setUserId(userDoc.id);
           checkIfVoted(userDoc.id);
           fetchCandidates();
+          loadBlockchain();
         } else {
           alert("Invalid password. Please try again.");
         }
@@ -42,25 +45,17 @@ const UserPage = () => {
     }
   };
 
-  // const fetchCandidates = async () => {
-  //   const candidatesSnapshot = await getDocs(collection(db, "candidates"));
-  //   setCandidates(candidatesSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
-  // };
-
   const fetchCandidates = async () => {
-  const candidatesSnapshot = await getDocs(collection(db, "candidates"));
-  const candidatesList = candidatesSnapshot.docs.map((doc) => {
-    const data = doc.data();
-    // Check if 'name' exists, and if not, provide a default value
-    return {
-      id: doc.id,
-      name: data.name || "Unnamed Candidate", // Provide a default name if missing
-      ...data, // Spread other data fields if any
-    };
-  });
-  setCandidates(candidatesList);
-};
-
+    const candidatesSnapshot = await getDocs(collection(db, "candidates"));
+    const candidatesList = candidatesSnapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        name: data.name || "Unnamed Candidate",
+      };
+    });
+    setCandidates(candidatesList);
+  };
 
   const checkIfVoted = async (uid: string) => {
     const voteQuery = query(collection(db, "votes"), where("userId", "==", uid));
@@ -72,27 +67,64 @@ const UserPage = () => {
 
   const handleVote = async (candidateId: string) => {
     if (!userId) return;
+
     try {
+      const voteQuery = query(collection(db, "votes"), where("userId", "==", userId));
+      const voteSnapshot = await getDocs(voteQuery);
+
+      if (!voteSnapshot.empty) {
+        alert("You have already voted!");
+        return;
+      }
+
+      const voteData = {
+        userId,
+        candidateId,
+        timestamp: new Date().toISOString(),
+      };
+
+      votingBlockchain.addBlock(voteData);
+
       await addDoc(collection(db, "votes"), {
         userId,
         candidateId,
+        timestamp: new Date().toISOString(),
       });
+
       setHasVoted(true);
-      alert("Thank you for voting!");
+      alert("Thank you for voting! Your vote is securely recorded.");
     } catch (error) {
       console.error("Error submitting vote", error);
       alert("Failed to vote. Please try again.");
     }
   };
 
+  const loadBlockchain = async () => {
+    try {
+      const blockchainSnapshot = await getDocs(collection(db, "blockchain"));
+      if (!blockchainSnapshot.empty) {
+        const chain = blockchainSnapshot.docs[0].data()?.chain || [];
+        votingBlockchain.loadChain(chain);
+        setBlockchainData(votingBlockchain.getChain());
+      }
+    } catch (error) {
+      console.error("Error loading blockchain data", error);
+    }
+  };
+
+  useEffect(() => {
+    loadBlockchain();
+  }, []);
+
   return (
-     
     <div className="min-h-screen bg-gradient-to-br from-blue-100 to-blue-50 flex items-center justify-center">
       <div className="max-w-md w-full p-8 rounded-lg shadow-lg bg-white">
         {!isAuthenticated ? (
           <div>
-            <h1 className="text-3xl font-bold text-center text-blue-600 ">User Login</h1>
-            <p className="text-1xl mb-6 text-red-300 text-center">Please provide your credential provided by election commission for temporary voting</p>
+            <h1 className="text-3xl font-bold text-center text-blue-600">User Login</h1>
+            <p className="text-xl mb-6 text-red-300 text-center">
+              Please provide your credentials provided by the election commission for voting.
+            </p>
             <div className="space-y-4">
               <input
                 type="email"
@@ -117,11 +149,14 @@ const UserPage = () => {
             </div>
           </div>
         ) : hasVoted ? (
-          <div className="text-center">
-            <h2 className="text-xl font-semibold text-gray-800">You have already voted. Thank you!</h2>
+          <div className="text-center animate-fade-in">
+            <div className="relative mx-auto w-64 h-64 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center shadow-lg">
+              <h2 className="text-white text-4xl font-bold">🎉</h2>
+            </div>
+            <h2 className="text-2xl font-bold text-blue-600 mt-6">Thank You!</h2>
+            <p className="text-gray-600 mt-4">You have successfully voted.</p>
           </div>
-          ) : (
-              
+        ) : (
           <div>
             <h1 className="text-3xl font-bold text-center text-blue-600 mb-6">Vote for a Candidate</h1>
             <div className="space-y-4">
@@ -147,9 +182,12 @@ const UserPage = () => {
           </div>
         )}
       </div>
-      </div>
-     
+    </div>
   );
 };
 
 export default UserPage;
+function addDoc(arg0: CollectionReference<DocumentData, DocumentData>, arg1: { userId: string; candidateId: string; timestamp: string; }) {
+  throw new Error("Function not implemented.");
+}
+
