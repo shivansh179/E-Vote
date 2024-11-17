@@ -94,7 +94,7 @@ const FaceValidation = () => {
 
       setStatus("Face recognized. Redirecting...");
       setTimeout(() => {
-        router.push("/user"); // Redirect to the user page
+        router.push("/owner_check"); // Redirect to the user page
       }, 1500);
     } catch (error) {
       setStatus(`Error: ${error.message}`);
