@@ -1,16 +1,17 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { collection, query, getDocs, where, updateDoc, doc, addDoc } from "firebase/firestore";
+import { useRouter } from "next/navigation";
+import { collection, query, getDocs } from "firebase/firestore";
 import { db } from "@/firebase";
 import * as faceapi from "face-api.js";
 
-const UserVote = () => {
-  const [candidate, setCandidate] = useState("");
+const FaceValidation = () => {
   const [status, setStatus] = useState("");
   const [isCameraReady, setIsCameraReady] = useState(false);
 
   const videoRef = React.useRef(null);
+  const router = useRouter();
 
   // Load face detection and recognition models
   const loadModels = async () => {
@@ -49,13 +50,8 @@ const UserVote = () => {
     setStatus("Camera stopped.");
   };
 
-  const vote = async () => {
+  const validateFace = async () => {
     try {
-      if (!candidate) {
-        setStatus("Please select a candidate.");
-        return;
-      }
-
       if (!videoRef.current) {
         setStatus("Camera is not ready. Please refresh the page and try again.");
         return;
@@ -75,7 +71,7 @@ const UserVote = () => {
       const userEmbedding = detections.descriptor;
 
       // Fetch all registered voters from Firebase
-      setStatus("Matching face with registered voters...");
+      setStatus("Matching face with registered users...");
       const votersQuery = query(collection(db, "voters"));
       const votersSnapshot = await getDocs(votersQuery);
 
@@ -92,28 +88,14 @@ const UserVote = () => {
       });
 
       if (!matchedVoter) {
-        setStatus("Face not recognized. You are not registered to vote.");
+        setStatus("Face not recognized. You are not authorized to proceed.");
         return;
       }
 
-      if (matchedVoter.voted) {
-        setStatus("You have already voted. Duplicate voting is not allowed.");
-        return;
-      }
-
-      // Record the vote
-      setStatus("Submitting your vote...");
-      await addDoc(collection(db, "votes"), {
-        voter_id: matchedVoter.user_id,
-        candidate: candidate,
-        timestamp: new Date().toISOString(),
-      });
-
-      // Mark the user as voted
-      await updateDoc(doc(db, "voters", matchedVoter.id), { voted: true });
-
-      setStatus("Vote submitted successfully! Thank you for voting.");
-      setCandidate("");
+      setStatus("Face recognized. Redirecting...");
+      setTimeout(() => {
+        router.push("/user"); // Redirect to the user page
+      }, 1500);
     } catch (error) {
       setStatus(`Error: ${error.message}`);
     }
@@ -127,7 +109,7 @@ const UserVote = () => {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
-      <h1 className="text-3xl font-bold mb-8 text-gray-800">Vote</h1>
+      <h1 className="text-3xl font-bold mb-8 text-gray-800">Face Validation</h1>
       <div className="bg-white shadow-lg rounded-lg p-6 w-96">
         <video
           ref={videoRef}
@@ -143,21 +125,11 @@ const UserVote = () => {
             Camera is active. Please ensure your face is centered in the frame.
           </p>
         )}
-        <select
-          className="block w-full p-2 mb-4 border rounded text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          value={candidate}
-          onChange={(e) => setCandidate(e.target.value)}
-        >
-          <option value="">Select a candidate</option>
-          <option value="Candidate A">Candidate A</option>
-          <option value="Candidate B">Candidate B</option>
-          <option value="Candidate C">Candidate C</option>
-        </select>
         <button
-          onClick={vote}
+          onClick={validateFace}
           className="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 mb-2"
         >
-          Submit Vote
+          Validate Face
         </button>
         <button
           onClick={stopCamera}
@@ -172,4 +144,4 @@ const UserVote = () => {
   );
 };
 
-export default UserVote;
+export default FaceValidation;
