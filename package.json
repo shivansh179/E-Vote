@@ -19,24 +19,41 @@
     "@tensorflow/tfjs-backend-webgl": "^4.22.0",
     "crypto-js": "^4.2.0",
     "e-vote": "file:",
+    "EventEmitter": "^1.0.0",
+    "expo-local-authentication": "^15.0.1",
+    "expo-modules-core": "^2.0.3",
     "firebase": "^11.0.2",
     "hardhat": "^2.22.15",
     "lottie-react": "^2.4.0",
     "next": "^15.0.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-native-get-random-values": "^1.11.0",
     "react-pattern-lock": "^12.0.12",
     "react-scripts": "^5.0.1",
-    "typescript": "^5.6.3",
     "web3": "^4.15.0"
   },
   "devDependencies": {
+    "@babel/core": "^7.26.0",
+    "@babel/generator": "^7.26.2",
+    "@babel/template": "^7.25.9",
+    "@babel/traverse": "^7.25.9",
     "@types/babel__core": "^7.20.5",
     "@types/babel__generator": "^7.6.8",
     "@types/babel__template": "^7.4.4",
     "@types/babel__traverse": "^7.20.6",
     "@types/firebase": "^2.4.32",
+    "@types/node": "^22.9.0",
     "@types/parse-json": "^4.0.2",
-    "@types/react": "18.3.12"
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "parse-json": "^8.1.0",
+    "typescript": "^5.6.3"
+  },
+  "overrides": {
+    "react-pattern-lock": {
+      "react": "18.3.1",
+      "react-dom": "18.3.1"
+    }
   }
 }

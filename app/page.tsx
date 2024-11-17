@@ -33,7 +33,7 @@ const LandingPage = () => {
           }`}
         >
           <h1 className="text-5xl font-extrabold mb-4 tracking-tight leading-tight">
-            Welcome to India's Election App
+            Welcome to India's Election App 
           </h1>
           <p className="text-xl mb-6 font-medium">
             Empowering Democracy with Secure Digital Voting
