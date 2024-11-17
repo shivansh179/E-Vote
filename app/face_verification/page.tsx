@@ -126,21 +126,48 @@ const UserVote = () => {
   }, []);
 
   return (
-    <div>
-      <h1>Vote</h1>
-      <video ref={videoRef} id="video" autoPlay muted width="320" height="240"></video>
-      {isCameraReady && <p>Camera is active. Please ensure your face is centered in the frame.</p>}
-      <select value={candidate} onChange={(e) => setCandidate(e.target.value)}>
-        <option value="">Select a candidate</option>
-        <option value="Candidate A">Candidate A</option>
-        <option value="Candidate B">Candidate B</option>
-        <option value="Candidate C">Candidate C</option>
-      </select>
-      <button onClick={vote}>Submit Vote</button>
-      <button onClick={stopCamera} disabled={!isCameraReady}>
-        Stop Camera
-      </button>
-      {status && <p>{status}</p>}
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
+      <h1 className="text-3xl font-bold mb-8 text-gray-800">Vote</h1>
+      <div className="bg-white shadow-lg rounded-lg p-6 w-96">
+        <video
+          ref={videoRef}
+          id="video"
+          autoPlay
+          muted
+          width="320"
+          height="240"
+          className="border rounded mb-4"
+        ></video>
+        {isCameraReady && (
+          <p className="text-sm text-green-500 mb-4">
+            Camera is active. Please ensure your face is centered in the frame.
+          </p>
+        )}
+        <select
+          className="block w-full p-2 mb-4 border rounded text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          value={candidate}
+          onChange={(e) => setCandidate(e.target.value)}
+        >
+          <option value="">Select a candidate</option>
+          <option value="Candidate A">Candidate A</option>
+          <option value="Candidate B">Candidate B</option>
+          <option value="Candidate C">Candidate C</option>
+        </select>
+        <button
+          onClick={vote}
+          className="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 mb-2"
+        >
+          Submit Vote
+        </button>
+        <button
+          onClick={stopCamera}
+          disabled={!isCameraReady}
+          className="w-full bg-red-500 text-white py-2 px-4 rounded hover:bg-red-600"
+        >
+          Stop Camera
+        </button>
+        {status && <p className="mt-4 text-sm text-gray-700">{status}</p>}
+      </div>
     </div>
   );
 };
