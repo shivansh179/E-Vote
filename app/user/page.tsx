@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { db } from "../../firebase";
-import { collection, query, where, getDocs,  CollectionReference, DocumentData, setDoc, doc } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, setDoc } from "firebase/firestore";
 import { Blockchain } from "../../blockchain";
-import { Block } from "../../blockchain";
 
 const votingBlockchain = new Blockchain();
 
@@ -16,9 +16,40 @@ const UserPage: React.FC = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [hasVoted, setHasVoted] = useState<boolean>(false);
   const [blockchainData, setBlockchainData] = useState<Block[]>([]);
+  const [isBiometricVerified, setIsBiometricVerified] = useState<boolean>(false);
+  const router = useRouter();
+
+  const handleBiometricAuthentication = async () => {
+    try {
+      setIsBiometricVerified(false);
+      // Trigger biometric verification using WebAuthn
+      const publicKey = {
+        challenge: new Uint8Array(32), // Replace with a server-generated challenge
+        allowCredentials: [],
+        userVerification: "required",
+      };
+      const credential = await navigator.credentials.get({ publicKey });
+
+      if (credential) {
+        setIsBiometricVerified(true);
+      } else {
+        alert("Biometric authentication failed. Redirecting to home page.");
+        router.push("/");
+      }
+    } catch (error) {
+      console.error("Biometric authentication error", error);
+      alert("You are not authorized to access this page.");
+      router.push("/");
+    }
+  };
 
   const handleSignIn = async () => {
     try {
+      if (!isBiometricVerified) {
+        alert("Please complete biometric authentication before signing in.");
+        return;
+      }
+
       const usersRef = collection(db, "users");
       const q = query(usersRef, where("email", "==", email));
       const querySnapshot = await getDocs(q);
@@ -67,21 +98,19 @@ const UserPage: React.FC = () => {
 
   const handleVote = async (candidateId: string) => {
     try {
-      const voteRef = doc(collection(db, "votes")); // Create a new document reference
+      const voteRef = doc(collection(db, "votes"));
       await setDoc(voteRef, {
         userId,
         candidateId,
         timestamp: new Date().toISOString(),
       });
-  
-      // Update the voting blockchain (optional, based on your implementation)
+
       votingBlockchain.addBlock({
         userId,
         candidateId,
         timestamp: new Date().toISOString(),
       });
-  
-      // Show "Thank You" page by updating state
+
       setHasVoted(true);
       alert("Thank you for voting! Your vote is securely recorded.");
     } catch (error) {
@@ -89,7 +118,6 @@ const UserPage: React.FC = () => {
       alert("Failed to vote. Please try again.");
     }
   };
-  
 
   const loadBlockchain = async () => {
     try {
@@ -105,7 +133,7 @@ const UserPage: React.FC = () => {
   };
 
   useEffect(() => {
-    loadBlockchain();
+    handleBiometricAuthentication();
   }, []);
 
   return (
@@ -115,36 +143,35 @@ const UserPage: React.FC = () => {
           <div>
             <h1 className="text-3xl font-bold text-center text-blue-600">User Login</h1>
             <p className="text-xl mb-6 text-red-300 text-center">
-              Please provide your credentials provided by the election commission for voting.
+              Please authenticate with your biometrics to proceed.
             </p>
-            <div className="space-y-4">
-              <input
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-              />
-              <input
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-              />
-              <button
-                onClick={handleSignIn}
-                className="w-full bg-blue-500 text-white font-semibold py-2 rounded-lg hover:bg-blue-600 transition"
-              >
-                Sign In
-              </button>
-            </div>
+            {isBiometricVerified && (
+              <div className="space-y-4">
+                <input
+                  type="email"
+                  placeholder="Email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                />
+                <input
+                  type="password"
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                />
+                <button
+                  onClick={handleSignIn}
+                  className="w-full bg-blue-500 text-white font-semibold py-2 rounded-lg hover:bg-blue-600 transition"
+                >
+                  Sign In
+                </button>
+              </div>
+            )}
           </div>
         ) : hasVoted ? (
-          <div className="text-center animate-fade-in">
-            <div className="relative mx-auto w-64 h-64 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center shadow-lg">
-              <h2 className="text-white text-4xl font-bold">🎉</h2>
-            </div>
+          <div className="text-center">
             <h2 className="text-2xl font-bold text-blue-600 mt-6">Thank You!</h2>
             <p className="text-gray-600 mt-4">You have successfully voted.</p>
           </div>
@@ -154,21 +181,18 @@ const UserPage: React.FC = () => {
             <div className="space-y-4">
               {candidates.length > 0 ? (
                 candidates.map((candidate) => (
-                  <div
-                    key={candidate.id}
-                    className="p-4 bg-blue-50 rounded-lg shadow hover:shadow-lg transition border border-blue-200"
-                  >
+                  <div key={candidate.id} className="p-4 bg-blue-50 rounded-lg shadow hover:shadow-lg">
                     <h3 className="font-semibold text-gray-800">{candidate.name}</h3>
                     <button
                       onClick={() => handleVote(candidate.id)}
-                      className="mt-2 bg-green-500 text-white font-semibold py-1 px-4 rounded-lg hover:bg-green-600 transition"
+                      className="mt-2 bg-green-500 text-white font-semibold py-1 px-4 rounded-lg"
                     >
                       Vote
                     </button>
                   </div>
                 ))
               ) : (
-                <p className="text-center text-gray-500">Loading candidates...</p>
+                <p>Loading candidates...</p>
               )}
             </div>
           </div>
@@ -179,7 +203,3 @@ const UserPage: React.FC = () => {
 };
 
 export default UserPage;
-function addDoc(arg0: CollectionReference<DocumentData, DocumentData>, arg1: { userId: string; candidateId: string; timestamp: string; }) {
-  throw new Error("Function not implemented.");
-}
-
