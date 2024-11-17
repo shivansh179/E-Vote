@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
-import { collection, addDoc } from "firebase/firestore";
+import { collection, addDoc, getDocs } from "firebase/firestore";
 import { db } from "@/firebase";
 import * as faceapi from "face-api.js";
+import { FaCamera } from "react-icons/fa";
 
 const AdminRegister = () => {
   const [name, setName] = useState("");
@@ -28,8 +29,9 @@ const AdminRegister = () => {
   };
 
   const startCamera = async () => {
-    setUseCamera(true);
-    await loadModels();
+    let answer = confirm("This website is accessing your camera. Are you aware ?");
+    {answer ? setUseCamera(true):null}
+    await loadModels()
 
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -93,6 +95,25 @@ const AdminRegister = () => {
         return;
       }
 
+      setStatus("Checking for duplicate registration...");
+      const votersSnapshot = await getDocs(collection(db, "voters"));
+      let isDuplicate = false;
+
+      votersSnapshot.forEach((doc) => {
+        const voterData = doc.data();
+        const dbEmbedding = new Float32Array(voterData.embedding);
+        const distance = faceapi.euclideanDistance(embedding, dbEmbedding);
+
+        if (distance < 0.6) {
+          isDuplicate = true;
+        }
+      });
+
+      if (isDuplicate) {
+        setStatus("Duplicate registration detected. This user is already registered.");
+        return;
+      }
+
       // Generate a unique ID for the user
       const userId = `user_${Date.now()}`;
 
@@ -113,9 +134,19 @@ const AdminRegister = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 relative">
       <h1 className="text-3xl font-bold mb-6 text-gray-800">Admin: Register User</h1>
-      <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-lg">
+      <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-lg ">
+        {/* Camera Icon */}
+        <div
+          className={`absolute top-2 right-2 p-2 rounded-full ${
+            useCamera ? "bg-green-500 animate-pulse mt-7" : "bg-red-500"
+          } text-white shadow-lg cursor-pointer`}
+          onClick={useCamera ? stopCamera : startCamera}
+          title={useCamera ? "Camera is ON" : "Camera is OFF"}
+        >
+          <FaCamera size={24} />
+        </div>
         <input
           type="text"
           placeholder="Enter user name"
@@ -124,12 +155,6 @@ const AdminRegister = () => {
           className="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <div className="flex flex-col items-center mb-6">
-          <button
-            onClick={startCamera}
-            className="w-full bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 mb-2"
-          >
-            Use Camera
-          </button>
           {useCamera && (
             <div className="w-full flex flex-col items-center">
               <video ref={videoRef} autoPlay muted className="border mb-4 rounded-lg" />
@@ -142,13 +167,6 @@ const AdminRegister = () => {
               </button>
             </div>
           )}
-          <button
-            onClick={stopCamera}
-            className="w-full bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 mt-2"
-            disabled={!useCamera}
-          >
-            Stop Camera
-          </button>
         </div>
         <div className="flex flex-col items-center mb-6">
           <input

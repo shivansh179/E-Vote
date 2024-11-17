@@ -7,6 +7,7 @@ import { createUserWithEmailAndPassword } from "firebase/auth";
 import Navbar from "@/components/Navbar";
 import { useTheme } from "@/components/ThemeContext";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 const AdminPage = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -24,7 +25,7 @@ const AdminPage = () => {
   useEffect(() => {
     const checkAuthStatus = async () => {
       const user = auth.currentUser;
-      if (user && user.email === "prashansa.erica@gmail.com") {
+      if (user && user.email === "prashansa.erica@gmail.com" || "shivansh@gmail.com") {
         setIsAuthenticated(true);
       } else {
         router.push("/auth");
@@ -153,6 +154,10 @@ const AdminPage = () => {
 
         <div className={`${boxStyle} p-6 rounded-lg shadow-md mb-8`}>
           <h2 className="text-xl font-semibold mb-4">Add Temporary Voter</h2>
+
+           <Link href="/face_register">
+              <div  className={`w-full ${buttonStyle} text-white p-3 rounded-md mb-5 transition`} >Add facial id of voter</div>
+            </Link>
           <input
             type="email"
             placeholder="Voter Email"
@@ -174,6 +179,9 @@ const AdminPage = () => {
             Add Voter
           </button>
         </div>
+
+
+        <div></div>
 
         <div className={`${boxStyle} p-6 rounded-lg shadow-md mb-8`}>
           <h2 className="text-xl font-semibold mb-4">Add Candidate</h2>
