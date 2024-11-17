@@ -22,6 +22,7 @@
     "EventEmitter": "^1.0.0",
     "expo-local-authentication": "^15.0.1",
     "expo-modules-core": "^2.0.3",
+    "face-api.js": "^0.22.2",
     "firebase": "^11.0.2",
     "hardhat": "^2.22.15",
     "lottie-react": "^2.4.0",
