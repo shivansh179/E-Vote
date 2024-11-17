@@ -52,11 +52,11 @@ const Navbar = () => {
         </button>
       <div className="flex items-center gap-10">
         <div className="hidden md:flex space-x-8">
-          <Link href="/auth">
+          {/* <Link href="/auth">
             <p className="text-gray-700 font-semibold hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600 rounded dark:text-white">
               Admin
             </p>
-          </Link>
+          </Link> */}
           <Link href="/user">
             <p className="text-gray-800 font-semibold hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600 rounded dark:text-white">
               User

@@ -6,15 +6,15 @@ import { collection, query, getDocs } from "firebase/firestore";
 import { db } from "@/firebase";
 import * as faceapi from "face-api.js";
 
-const FaceValidation = () => {
-  const [status, setStatus] = useState("");
-  const [isCameraReady, setIsCameraReady] = useState(false);
+const FaceValidation: React.FC = () => {
+  const [status, setStatus] = useState<string>("");
+  const [isCameraReady, setIsCameraReady] = useState<boolean>(false);
 
-  const videoRef = React.useRef(null);
+  const videoRef = React.useRef<HTMLVideoElement | null>(null);
   const router = useRouter();
 
   // Load face detection and recognition models
-  const loadModels = async () => {
+  const loadModels = async (): Promise<void> => {
     setStatus("Loading face recognition models...");
     await faceapi.nets.ssdMobilenetv1.loadFromUri("/models");
     await faceapi.nets.faceRecognitionNet.loadFromUri("/models");
@@ -23,34 +23,35 @@ const FaceValidation = () => {
   };
 
   // Start video stream from the camera
-  const startCamera = async () => {
+  const startCamera = async (): Promise<void> => {
     setStatus("Initializing camera...");
     try {
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
         if (videoRef.current) {
-          videoRef.current.srcObject = stream;
+          (videoRef.current as HTMLVideoElement).srcObject = stream;
           setIsCameraReady(true);
           setStatus("Camera ready. Please position your face in front of the camera.");
         }
       }
     } catch (error) {
-      setStatus(`Camera error: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred.";
+      setStatus(`Camera error: ${errorMessage}`);
     }
   };
 
   // Stop the video stream
-  const stopCamera = () => {
-    const stream = videoRef.current?.srcObject;
+  const stopCamera = (): void => {
+    const stream = (videoRef.current?.srcObject as MediaStream | null);
     if (stream) {
       const tracks = stream.getTracks();
-      tracks.forEach((track) => track.stop());
+      tracks.forEach((track: MediaStreamTrack) => track.stop());
     }
     setIsCameraReady(false);
     setStatus("Camera stopped.");
   };
 
-  const validateFace = async () => {
+  const validateFace = async (): Promise<void> => {
     try {
       if (!videoRef.current) {
         setStatus("Camera is not ready. Please refresh the page and try again.");
@@ -75,7 +76,7 @@ const FaceValidation = () => {
       const votersQuery = query(collection(db, "voters"));
       const votersSnapshot = await getDocs(votersQuery);
 
-      let matchedVoter = null;
+      let matchedVoter: any = null;
 
       votersSnapshot.forEach((doc) => {
         const voterData = doc.data();
@@ -97,7 +98,8 @@ const FaceValidation = () => {
         router.push("/owner_check"); // Redirect to the user page
       }, 1500);
     } catch (error) {
-      setStatus(`Error: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred.";
+      setStatus(`Error: ${errorMessage}`);
     }
   };
 
@@ -110,7 +112,7 @@ const FaceValidation = () => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
       <h1 className="text-3xl font-bold mb-8 text-gray-800">Face Validation</h1>
-      <div className="bg-white shadow-lg rounded-lg p-6 w-96">
+      <div className="bg-white shadow-lg rounded-lg p-6 w-96 relative">
         <video
           ref={videoRef}
           id="video"
