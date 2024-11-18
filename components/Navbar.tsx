@@ -65,8 +65,7 @@ const Navbar = () => {
                   </div>
                   </div>
 
-        {/* Theme Toggle Button with Sun and Moon Icons */}
-      
+       
       </div>
 
       {/* Mobile Menu Button */}
