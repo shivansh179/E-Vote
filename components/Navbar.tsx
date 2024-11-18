@@ -57,7 +57,7 @@ const Navbar = () => {
               Admin
             </p>
           </Link> */}
-          <Link href="/user">
+          <Link href="/face_verification">
             <p className="text-gray-800 font-semibold hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600 rounded dark:text-white">
               User
             </p>
@@ -102,12 +102,12 @@ const Navbar = () => {
 
             <div className="mt-8 space-y-6">
               {/* Navigation Links */}
-              <Link href="/auth" onClick={closeMobileMenu}>
+              {/* <Link href="/auth" onClick={closeMobileMenu}>
                 <p className="text-gray-700 font-semibold hover:text-blue-600 dark:text-white">
                   Admin
                 </p>
-              </Link>
-              <Link href="/user" onClick={closeMobileMenu}>
+              </Link> */}
+              <Link href="/face_verification" onClick={closeMobileMenu}>
                 <p className="text-gray-700 font-semibold hover:text-blue-600 dark:text-white">
                   User
                 </p>
