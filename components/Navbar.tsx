@@ -18,7 +18,7 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="flex items-center justify-between p-4 bg-white shadow-md dark:bg-gray-800">
+    <nav className="flex items-center justify-between p-4 bg-white shadow-md dark:bg-gray-800 transition-all duration-300">
       {/* Logo */}
       <div className="flex-shrink-0">
         <Link href="/" aria-label="Home">
@@ -36,36 +36,26 @@ const Navbar = () => {
         </Link>
       </div>
 
-          {/* Desktop Navigation Links */}
-          <div className='flex gap-5'>
-            <button
+      {/* Desktop Navigation Links */}
+      <div className="hidden md:flex items-center space-x-8">
+        <Link href="/face_verification">
+          <p className="text-gray-800 font-semibold hover:text-blue-600 dark:text-white dark:hover:text-blue-400 transition-colors duration-300">
+            User
+          </p>
+        </Link>
+        {/* Theme Toggle */}
+        <button
           onClick={toggleTheme}
-          className="p-2 rounded-md hidden md:block hover:bg-indigo-200 dark:hover:bg-indigo-600 transition-all duration-300"
+          className={`relative inline-flex items-center h-6 w-12 rounded-full transition-all duration-300 ${
+            theme === 'light' ? 'bg-gray-200' : 'bg-indigo-600'
+          }`}
         >
-          <Image
-            src={theme === 'light' ? '/moon-icon.png' : '/sun-icon.png'}
-            alt={theme === 'light' ? 'Sun Icon' : 'Moon Icon'}
-            width={24}
-            height={24}
-            className="transition-all duration-300"
-          />
+          <span
+            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-300 ${
+              theme === 'light' ? 'translate-x-1' : 'translate-x-6'
+            }`}
+          ></span>
         </button>
-      <div className="flex items-center gap-10">
-        <div className="hidden md:flex space-x-8">
-          {/* <Link href="/auth">
-            <p className="text-gray-700 font-semibold hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600 rounded dark:text-white">
-              Admin
-            </p>
-          </Link> */}
-          <Link href="/face_verification">
-            <p className="text-gray-800 font-semibold hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600 rounded dark:text-white">
-              User
-            </p>
-          </Link>
-                  </div>
-                  </div>
-
-       
       </div>
 
       {/* Mobile Menu Button */}
@@ -73,63 +63,50 @@ const Navbar = () => {
         <button
           aria-label="Open Menu"
           onClick={toggleMobileMenu}
-          className="text-gray-700 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600 rounded dark:text-white"
+          className="text-gray-700 dark:text-white hover:text-blue-600 focus:outline-none transition-all duration-300"
         >
           ☰
         </button>
       </div>
 
-      {/* Mobile Menu with Backdrop */}
+      {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <>
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-black bg-opacity-30 z-40"
-            onClick={closeMobileMenu}
-          ></div>
-
-          {/* Sidebar */}
-          <div className="fixed top-0 right-0 left-44 h-full w-64 bg-white dark:bg-gray-800 shadow-lg p-6 z-50 transform translate-x-0 transition-transform duration-300">
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-40 flex justify-end">
+          <div className="w-64 bg-white dark:bg-gray-800 shadow-lg p-6 z-50">
             {/* Close Button */}
             <button
               aria-label="Close Menu"
               onClick={closeMobileMenu}
-              className="text-gray-700 dark:text-white hover:text-blue-600 focus:outline-none"
+              className="text-gray-700 dark:text-white hover:text-blue-600 focus:outline-none transition-all duration-300"
             >
               ✕
             </button>
 
             <div className="mt-8 space-y-6">
-              {/* Navigation Links */}
-              {/* <Link href="/auth" onClick={closeMobileMenu}>
-                <p className="text-gray-700 font-semibold hover:text-blue-600 dark:text-white">
-                  Admin
-                </p>
-              </Link> */}
               <Link href="/face_verification" onClick={closeMobileMenu}>
-                <p className="text-gray-700 font-semibold hover:text-blue-600 dark:text-white">
+                <p className="text-gray-800 font-semibold hover:text-blue-600 dark:text-white dark:hover:text-blue-400 transition-colors duration-300">
                   User
                 </p>
               </Link>
             </div>
 
-            {/* Theme Toggle Button */}
+            {/* Theme Toggle */}
             <div className="mt-8">
               <button
                 onClick={toggleTheme}
-                className="p-2 rounded-md hover:bg-indigo-200 dark:hover:bg-indigo-600 transition-all duration-300"
+                className={`relative inline-flex items-center h-6 w-12 rounded-full transition-all duration-300 ${
+                  theme === 'light' ? 'bg-gray-200' : 'bg-indigo-600'
+                }`}
               >
-                <Image
-                  src={theme === 'light' ? '/moon-icon.png' : '/sun-icon.png'}
-                  alt={theme === 'light' ? 'Sun Icon' : 'Moon Icon'}
-                  width={24}
-                  height={24}
-                  className="transition-all duration-300"
-                />
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-300 ${
+                    theme === 'light' ? 'translate-x-1' : 'translate-x-6'
+                  }`}
+                ></span>
               </button>
             </div>
           </div>
-        </>
+        </div>
       )}
     </nav>
   );
