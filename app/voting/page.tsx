@@ -189,7 +189,7 @@ const VotingPage: React.FC = () => {
       const q = query(usersRef, where("email", "==", userEmail));
       const querySnapshot = await getDocs(q);
 
-      if (!querySnapshot.empty) {
+      if (querySnapshot.empty) {
         setHasVoted(true);
         toast.success("You have already voted. Thank you!");
       } else {
