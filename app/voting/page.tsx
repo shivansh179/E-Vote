@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   collection,
@@ -21,8 +21,7 @@ import {
   FaTimesCircle,
   FaSpinner,
 } from "react-icons/fa";
-import SHA256 from "crypto-js/sha256"; // Importing SHA256 from crypto-js
-
+import SHA256 from "crypto-js/sha256";
 /** -----------------------------
  *  Blockchain Classes
  * -----------------------------
@@ -313,6 +312,8 @@ const VotingPage: React.FC = () => {
   );
 
   return (
+    <Suspense fallback={<div>Loading...</div>}>
+
     <div className={containerClass}>
       {/* Theme Toggle Button */}
       <ThemeToggleButton />
@@ -389,6 +390,7 @@ const VotingPage: React.FC = () => {
         }}
       />
     </div>
+    </Suspense>
   );
 };
 

@@ -91,7 +91,7 @@ const PinCheckOnly: React.FC = () => {
 
         {/* PIN Input */}
         <div className="mb-6">
-          <label htmlFor="pin" className="block text-indigo-700 text-sm font-medium mb-2 flex items-center">
+          <label htmlFor="pin" className="text-indigo-700 text-sm font-medium mb-2 flex items-center">
             <FaLock className="mr-2" /> PIN
           </label>
           <input
