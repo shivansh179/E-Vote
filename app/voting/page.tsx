@@ -312,8 +312,6 @@ const VotingPage: React.FC = () => {
   );
 
   return (
-    <Suspense fallback={<div>Loading...</div>}>
-
     <div className={containerClass}>
       {/* Theme Toggle Button */}
       <ThemeToggleButton />
@@ -345,6 +343,7 @@ const VotingPage: React.FC = () => {
         </div>
 
         {/* Voting Section */}
+        <Suspense fallback={<div>Loading voting section...</div>}>
         {hasVoted ? (
           <h1 className="text-2xl font-extrabold text-center text-green-300 animate-pulse">
             Thank you for voting!
@@ -374,6 +373,7 @@ const VotingPage: React.FC = () => {
             )}
           </>
         )}
+        </Suspense>
       </div>
 
       {/* React Hot Toast Container */}
@@ -390,7 +390,6 @@ const VotingPage: React.FC = () => {
         }}
       />
     </div>
-    </Suspense>
   );
 };
 
