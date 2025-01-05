@@ -1,28 +1,27 @@
 {
   "compilerOptions": {
-    "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "typeRoots": ["node_modules/@types", "./node_modules/@tensorflow-models"],
-
-    "noEmit": true,
-    "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "node", // Updated from "bundler" to "node"
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "preserve",
-    "incremental": true,
-    "forceConsistentCasingInFileNames": true,
+    "target": "ES2017",                    // Modern JS target
+    "lib": ["dom", "dom.iterable", "esnext"],  // Required libraries
+    "allowJs": true,                        // Allow JS files in the project
+    "skipLibCheck": true,                   // Skip type checks for libraries
+    "strict": true,                         // Enable all strict type checks
+    "typeRoots": ["node_modules/@types", "./node_modules/@tensorflow-models"],  // Type definitions root
+    "noEmit": true,                         // Don't emit outputs
+    "esModuleInterop": true,                // Enable interoperability with CommonJS modules
+    "module": "esnext",                     // Use ESNext module system
+    "moduleResolution": "node",             // Resolve modules using Node's resolution
+    "resolveJsonModule": true,              // Enable importing .json files
+    "isolatedModules": true,                // Isolated module support
+    "jsx": "preserve",                      // JSX should be preserved for React
+    "incremental": true,                    // Enable incremental compilation
+    "forceConsistentCasingInFileNames": true, // Ensure case-sensitive imports
     "plugins": [
       {
-        "name": "next"
+        "name": "next"                      // Next.js plugin for TypeScript
       }
     ],
     "types": [
-      "node",
+      "node",                               // Include types for Node.js
       "babel__core",
       "babel__generator",
       "babel__template",
@@ -30,9 +29,22 @@
       "parse-json"
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"]                        // Path alias for simplified imports
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "postcss.config.js"],
-  "exclude": ["node_modules"]
+  "include": [
+    "next-env.d.ts",                        // Type definitions for Next.js
+    "src/**/*",                             // Include all TypeScript/JavaScript files in `src` folder
+    "**/*.ts",                              // Include all .ts files
+    "**/*.tsx",                             // Include all .tsx files (React components)
+    ".next/types/**/*.ts",                  // Include Next.js types
+    "postcss.config.js"                     // Include postcss config file if needed
+  ],
+  "exclude": [
+    "node_modules",                         // Exclude node_modules
+    "**/*.test.ts",                         // Optionally exclude test files if not needed
+    "**/*.test.tsx",                        // Optionally exclude test files if not needed
+    "dist",                                 // Exclude build output
+    "out"                                   // Exclude output folder from Next.js build
+  ]
 }

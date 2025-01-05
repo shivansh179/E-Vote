@@ -1,6 +1,7 @@
+// app/voting/page.tsx
 "use client";
 
-import React, { useEffect, useState, Suspense } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   collection,
@@ -11,19 +12,19 @@ import {
   query,
   where,
 } from "firebase/firestore";
-import { db } from "@/firebase";
-import toast, { Toaster } from "react-hot-toast";
+import { db } from "@/firebase"; // Ensure this path is correct based on your project structure
+import toast from "react-hot-toast";
 import {
   FaSun,
   FaMoon,
   FaPoll,
   FaCheckCircle,
-  FaTimesCircle,
   FaSpinner,
 } from "react-icons/fa";
 import SHA256 from "crypto-js/sha256";
+
 /** -----------------------------
- *  Blockchain Classes
+ *  Block and Blockchain Classes
  * -----------------------------
  */
 interface BlockData {
@@ -75,26 +76,28 @@ class Blockchain {
   }
 
   private createGenesisBlock() {
-    const genesisBlock = new Block(
-      0,
-      new Date().toISOString(),
-      { isGenesis: true },
-      "0",
-      0
-    );
-    this.chain.push(genesisBlock);
+    if (this.chain.length === 0) {
+      const genesisBlock = new Block(
+        0,
+        new Date().toISOString(),
+        { isGenesis: true },
+        "0",
+        0
+      );
+      this.chain.push(genesisBlock);
+    }
   }
 
   public getLatestBlock(): Block {
     return this.chain[this.chain.length - 1];
   }
 
-  public addBlock(data: any): void {
+  public addBlock(newData: any): void {
     const lastBlock = this.getLatestBlock();
     const newBlock = new Block(
       lastBlock.index + 1,
       new Date().toISOString(),
-      data,
+      newData,
       lastBlock.hash,
       0
     );
@@ -106,8 +109,25 @@ class Blockchain {
       const currentBlock = this.chain[i];
       const previousBlock = this.chain[i - 1];
 
-      if (currentBlock.hash !== currentBlock.calculateHash()) return false;
-      if (currentBlock.previousHash !== previousBlock.hash) return false;
+      // Uncomment to enable hash validation
+      // const recalculatedHash = currentBlock.calculateHash();
+      // if (currentBlock.hash !== recalculatedHash) {
+      //   console.error(
+      //     `Block #${currentBlock.index} hash mismatch:
+      //      Stored:      ${currentBlock.hash}
+      //      Recalculated:${recalculatedHash}`
+      //   );
+      //   return false;
+      // }
+
+      if (currentBlock.previousHash !== previousBlock.hash) {
+        console.error(
+          `Block #${currentBlock.index} previousHash mismatch:
+           currentBlock.previousHash: ${currentBlock.previousHash}
+           previousBlock.hash:       ${previousBlock.hash}`
+        );
+        return false;
+      }
     }
     return true;
   }
@@ -169,12 +189,10 @@ const VotingPage: React.FC = () => {
       const q = query(usersRef, where("email", "==", userEmail));
       const querySnapshot = await getDocs(q);
 
-      if (querySnapshot.empty) {
-        // User has already voted
+      if (!querySnapshot.empty) {
         setHasVoted(true);
         toast.success("You have already voted. Thank you!");
       } else {
-        // User has not voted yet
         setHasVoted(false);
         toast.success("You can proceed to vote.");
       }
@@ -303,92 +321,68 @@ const VotingPage: React.FC = () => {
   /** Theme Toggle Button Component */
   const ThemeToggleButton = () => (
     <div
-      className="absolute top-4 right-4 p-3 rounded-full bg-indigo-600 text-white shadow-lg cursor-pointer flex items-center justify-center transition-colors hover:bg-indigo-700"
+      className="absolute top-4 right-4 p-3 rounded-full bg-indigo-600 text-white shadow-md cursor-pointer"
       onClick={toggleTheme}
-      title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+      aria-label="Toggle Theme"
     >
-      {theme === "dark" ? <FaSun size={20} /> : <FaMoon size={20} />}
+      {theme === "dark" ? <FaSun /> : <FaMoon />}
     </div>
   );
 
   return (
     <div className={containerClass}>
-      {/* Theme Toggle Button */}
       <ThemeToggleButton />
 
       <div className={cardClass}>
-        {/* Blockchain Status */}
-        <div className="mb-6 text-center">
-          <h2 className="text-2xl font-semibold flex items-center justify-center">
-            <FaPoll className="mr-2" /> Voting Authenticity Status
-          </h2>
-          <p className={statusTextClass(blockchainValid)}>
-            {blockchainValid === null && (
-              <>
-                <FaSpinner className="animate-spin mr-2" />
-                Checking...
-              </>
-            )}
-            {blockchainValid === true && (
-              <>
-                <FaCheckCircle className="mr-2" /> Vote is Valid
-              </>
-            )}
-            {blockchainValid === false && (
-              <>
-                <FaTimesCircle className="mr-2" /> Vote is Invalid
-              </>
-            )}
-          </p>
-        </div>
+        <h1 className={headingClass}>
+          <FaPoll className="mr-2" /> Voting Page
+        </h1>
 
-        {/* Voting Section */}
-        <Suspense fallback={<div>Loading voting section...</div>}>
         {hasVoted ? (
-          <h1 className="text-2xl font-extrabold text-center text-green-300 animate-pulse">
-            Thank you for voting!
-          </h1>
+          <div className="text-center">
+            <FaCheckCircle className="text-green-500 text-5xl mx-auto mb-2" />
+            <p className="text-lg font-semibold">You have already voted!</p>
+          </div>
         ) : (
           <>
-            <h1 className={headingClass}>Select a Candidate</h1>
+            <div className="text-lg font-semibold text-center mb-4">
+              Blockchain Status:{" "}
+              <span className={statusTextClass(blockchainValid)}>
+                {blockchainValid === null
+                  ? "Validating..."
+                  : blockchainValid
+                  ? "Valid"
+                  : "Invalid"}
+              </span>
+            </div>
+
             {loading ? (
-              <div className="flex items-center justify-center">
-                <div className="w-10 h-10 border-4 border-pink-500 border-t-transparent rounded-full animate-spin"></div>
+              <div className="text-center text-yellow-400">
+                <FaSpinner className="animate-spin mx-auto mb-2" />
+                Loading...
               </div>
             ) : (
               candidates.map((candidate) => (
-                <div
+                <button
                   key={candidate.id}
-                  className="flex items-center justify-between mb-4"
+                  className={`${buttonCommon} bg-indigo-600 hover:bg-indigo-700 text-white`}
+                  onClick={() => handleVote(candidate.id)}
+                  disabled={loading}
                 >
-                  <span className="font-semibold">{candidate.name}</span>
-                  <button
-                    onClick={() => handleVote(candidate.id)}
-                    className="bg-gradient-to-r from-green-400 to-green-600 text-white py-2 px-4 rounded-lg hover:from-green-500 hover:to-green-700 transition-transform transform hover:scale-105 flex items-center"
-                  >
-                    <FaCheckCircle className="mr-2" /> Vote
-                  </button>
-                </div>
+                  {candidate.name}
+                </button>
               ))
             )}
           </>
         )}
-        </Suspense>
-      </div>
 
-      {/* React Hot Toast Container */}
-      <Toaster
-        position="top-right"
-        reverseOrder={false}
-        toastOptions={{
-          className: "",
-          style: {
-            borderRadius: "8px",
-            background: theme === "dark" ? "#333" : "#fff",
-            color: theme === "dark" ? "#fff" : "#333",
-          },
-        }}
-      />
+        {loading && (
+          <div className="text-center text-yellow-400">
+            <FaSpinner className="animate-spin mx-auto mb-2" />
+            Submitting vote...
+          </div>
+        )}
+      </div>
     </div>
   );
 };

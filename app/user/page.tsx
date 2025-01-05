@@ -15,7 +15,7 @@ import crypto from "crypto";
 import { FaSun, FaMoon, FaSignInAlt, FaSyncAlt, FaCheckCircle, FaTimesCircle, FaSpinner, FaEnvelope, FaLock } from "react-icons/fa";
 import { SiBlockchaindotcom } from "react-icons/si";
 import toast, { Toaster } from "react-hot-toast";
-
+import { Suspense } from "react";
 /** -----------------------------
  *  Block and Blockchain Classes
  * -----------------------------
@@ -288,6 +288,7 @@ const BlockchainDebugSideBySide: React.FC = () => {
   };
 
   return (
+    <Suspense>
     <div className={containerClass}>
       {/* Theme Toggle */}
       <div
@@ -431,6 +432,7 @@ const BlockchainDebugSideBySide: React.FC = () => {
         }}
       />
     </div>
+    </Suspense>
   );
 };
 
