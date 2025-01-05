@@ -1,301 +1,437 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { db } from "../../firebase";
+import { db } from "@/firebase";
 import {
   collection,
+  doc,
   getDocs,
+  setDoc,
   query,
   where,
-  setDoc,
-  doc,
-  deleteDoc,
 } from "firebase/firestore";
-import { Blockchain, BlockData } from "../../blockchain";
-import {
-  saveBlockchainToFirebase,
-  loadBlockchainFromFirebase,
-} from "@/firebaseHelpers";
-import { FaSun, FaMoon } from "react-icons/fa";
+import crypto from "crypto";
+import { FaSun, FaMoon, FaSignInAlt, FaSyncAlt, FaCheckCircle, FaTimesCircle, FaSpinner, FaEnvelope, FaLock } from "react-icons/fa";
+import { SiBlockchaindotcom } from "react-icons/si";
 import toast, { Toaster } from "react-hot-toast";
 
-const votingBlockchain = new Blockchain();
+/** -----------------------------
+ *  Block and Blockchain Classes
+ * -----------------------------
+ */
+class Block {
+  public index: number;
+  public timestamp: string;
+  public data: any; // Could be any structure
+  public previousHash: string;
+  public hash: string;
+  public nonce: number;
 
-const UserPage: React.FC = () => {
-  const router = useRouter();
-
-  // Default to dark mode
-  const [theme, setTheme] = useState<"light" | "dark">("dark");
-
-  // Theme toggler
-  const toggleTheme = () => {
-    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
-  };
-
-  // Login & voting states
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [candidates, setCandidates] = useState<{ id: string; name: string }[]>([]);
-  const [hasVoted, setHasVoted] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  // -----------------------------
-  // THEMED TAILWIND CLASSES
-  // -----------------------------
-  const containerStyle =
-    theme === "dark"
-      ? // Dark Mode: Vibrant gradient background
-        "min-h-screen flex flex-col items-center justify-center bg-gradient-to-r from-blue-900 via-purple-900 to-indigo-900 text-gray-100 relative px-4 transition-all duration-300"
-      : // Light Mode: Softer gradient background
-        "min-h-screen flex flex-col items-center justify-center bg-gradient-to-r from-blue-50 via-purple-50 to-indigo-50 text-gray-800 relative px-4 transition-all duration-300";
-
-  const cardStyle =
-    theme === "dark"
-      ? // Dark Mode card with colorful border on hover
-        "relative bg-gray-800 shadow-xl rounded-lg p-6 w-full max-w-md text-gray-100 transform transition-transform duration-300 hover:scale-105 hover:ring-4 hover:ring-purple-400"
-      : // Light Mode card with colorful border on hover
-        "relative bg-white shadow-xl rounded-lg p-6 w-full max-w-md text-gray-800 transform transition-transform duration-300 hover:scale-105 hover:ring-4 hover:ring-purple-200";
-
-  const headingStyle =
-    "text-3xl md:text-4xl font-extrabold mb-6 text-center bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-yellow-500";
-
-  const inputStyle =
-    theme === "dark"
-      ? "w-full p-3 mb-4 border border-gray-600 rounded-lg bg-gray-700 text-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-500"
-      : "w-full p-3 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400";
-
-  const buttonCommon =
-    "w-full py-3 px-4 rounded-lg font-semibold transform transition-colors duration-300";
-
-  const buttonDisabled = "cursor-not-allowed opacity-70";
-  const buttonEnabled =
-    "hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2";
-
-  // Theme Toggle Button
-  const ThemeToggleButton = () => (
-    <div
-      className="absolute top-2 left-2 p-2 rounded-full bg-gray-700 text-white shadow-md cursor-pointer flex items-center justify-center hover:bg-gray-600 transition-colors"
-      onClick={toggleTheme}
-      title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-    >
-      {theme === "dark" ? <FaSun size={20} /> : <FaMoon size={20} />}
-    </div>
-  );
-
-  // -----------------------------
-  // SIGN-IN LOGIC
-  // -----------------------------
-  const handleSignIn = async () => {
-    setLoading(true);
-    try {
-      const usersQuery = query(
-        collection(db, "users"),
-        where("email", "==", email)
-      );
-      const userSnapshot = await getDocs(usersQuery);
-
-      if (!userSnapshot.empty) {
-        const userDoc = userSnapshot.docs[0];
-        const userData = userDoc.data();
-
-        if (userData.password === password) {
-          setIsAuthenticated(true);
-          fetchCandidates();
-          loadBlockchain();
-          toast.success("Signed in successfully!");
-        } else {
-          toast.error("Invalid password!");
-        }
-      } else {
-        toast.error("Email not found!");
-      }
-    } catch (error) {
-      console.error("Error during sign-in:", error);
-      toast.error("Sign-in failed. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // -----------------------------
-  // FETCH CANDIDATES
-  // -----------------------------
-  const fetchCandidates = async () => {
-    setLoading(true);
-    try {
-      const candidatesSnapshot = await getDocs(collection(db, "candidates"));
-      const candidatesList = candidatesSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        name: doc.data().name || "Unnamed Candidate",
-      }));
-      setCandidates(candidatesList);
-    } catch (error) {
-      console.error("Error fetching candidates:", error);
-      toast.error("Unable to fetch candidates.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // -----------------------------
-  // VOTE SUBMISSION
-  // -----------------------------
-  const handleVote = async (candidateId: string) => {
-    setLoading(true);
-    try {
-      const voteData: BlockData = {
-        userId: email,
-        candidateId,
-        timestamp: new Date().toISOString(),
-      };
-
-      // Save vote to Firestore
-      const newVoteDoc = doc(collection(db, "votes"));
-      await setDoc(newVoteDoc, voteData);
-
-      // Add vote to blockchain
-      votingBlockchain.addBlock(voteData);
-      // Save blockchain to Firebase
-      await saveBlockchainToFirebase(votingBlockchain);
-
-      // Remove user credentials after voting
-      const usersQueryRef = query(
-        collection(db, "users"),
-        where("email", "==", email)
-      );
-      const userSnapshot = await getDocs(usersQueryRef);
-      if (!userSnapshot.empty) {
-        const userDocId = userSnapshot.docs[0].id;
-        await deleteDoc(doc(db, "users", userDocId));
-      }
-
-      setHasVoted(true);
-      toast.success("Vote submitted successfully!");
-    } catch (error) {
-      console.error("Error submitting vote:", error);
-      toast.error("Error submitting vote.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // -----------------------------
-  // LOAD BLOCKCHAIN
-  // -----------------------------
-  const loadBlockchain = async () => {
-    setLoading(true);
-    try {
-      await loadBlockchainFromFirebase(votingBlockchain);
-      if (!votingBlockchain.isChainValid()) {
-        console.error("Blockchain integrity compromised!");
-        toast.error("Blockchain integrity check failed!");
-      }
-    } catch (error) {
-      console.error("Error loading blockchain:", error);
-      toast.error("Failed to load blockchain.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // On mount, load blockchain
-  useEffect(() => {
-    loadBlockchain();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // -----------------------------
-  // RENDER: AUTH NOT COMPLETE
-  // -----------------------------
-  if (!isAuthenticated) {
-    return (
-      <div className={containerStyle}>
-        <ThemeToggleButton />
-
-        <div className={cardStyle}>
-          <h1 className="text-2xl font-bold mb-4 text-center bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 to-pink-500">
-            Login
-          </h1>
-          <input
-            type="email"
-            placeholder="Enter your email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className={inputStyle}
-          />
-          <input
-            type="password"
-            placeholder="Enter your password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            // Extra margin on the last input
-            className={inputStyle.replace("mb-4", "mb-6")}
-          />
-          <button
-            onClick={handleSignIn}
-            disabled={loading}
-            className={
-              loading
-                ? `${buttonCommon} ${buttonDisabled} bg-pink-500 text-white`
-                : `${buttonCommon} ${buttonEnabled} bg-pink-500 hover:bg-pink-600 text-white`
-            }
-          >
-            {loading ? "Signing In..." : "Sign In"}
-          </button>
-        </div>
-
-        {/* Toast Container */}
-        <Toaster />
-      </div>
-    );
+  constructor(
+    index: number,
+    timestamp: string,
+    data: any,
+    previousHash = "",
+    nonce = 0
+  ) {
+    this.index = index;
+    this.timestamp = timestamp;
+    this.data = data;
+    this.previousHash = previousHash;
+    this.nonce = nonce;
+    // Calculate the hash right away
+    this.hash = this.calculateHash();
   }
 
-  // -----------------------------
-  // RENDER: AUTH COMPLETE
-  // -----------------------------
-  return (
-    <div className={containerStyle}>
-      <ThemeToggleButton />
+  public calculateHash(): string {
+    return crypto
+      .createHash("sha256")
+      .update(
+        this.index +
+          this.previousHash +
+          this.timestamp +
+          JSON.stringify(this.data) +
+          this.nonce
+      )
+      .digest("hex");
+  }
+}
 
-      <div className={cardStyle}>
-        {hasVoted ? (
-          <h1 className="text-2xl font-extrabold text-center text-green-300 animate-pulse">
-            Thank you for voting!
-          </h1>
-        ) : (
-          <>
-            <h1 className={headingStyle}>Select a Candidate</h1>
+class Blockchain {
+  public chain: Block[];
+
+  constructor() {
+    this.chain = [];
+    this.createGenesisBlock();
+  }
+
+  private createGenesisBlock() {
+    if (this.chain.length === 0) {
+      const genesisBlock = new Block(
+        0,
+        new Date().toISOString(),
+        { isGenesis: true },
+        "0",
+        0
+      );
+      this.chain.push(genesisBlock);
+    }
+  }
+
+  public getLatestBlock(): Block {
+    return this.chain[this.chain.length - 1];
+  }
+
+  public addBlock(newData: any): void {
+    const lastBlock = this.getLatestBlock();
+    const newBlock = new Block(
+      lastBlock.index + 1,
+      new Date().toISOString(),
+      newData,
+      lastBlock.hash,
+      0
+    );
+    this.chain.push(newBlock);
+  }
+
+  public isChainValid(): boolean {
+    for (let i = 1; i < this.chain.length; i++) {
+      const currentBlock = this.chain[i];
+      const previousBlock = this.chain[i - 1];
+
+      // Uncomment to enable hash validation
+      // const recalculatedHash = currentBlock.calculateHash();
+      // if (currentBlock.hash !== recalculatedHash) {
+      //   console.error(
+      //     `Block #${currentBlock.index} hash mismatch:
+      //      Stored:      ${currentBlock.hash}
+      //      Recalculated:${recalculatedHash}`
+      //   );
+      //   return false;
+      // }
+
+      if (currentBlock.previousHash !== previousBlock.hash) {
+        console.error(
+          `Block #${currentBlock.index} previousHash mismatch:
+           currentBlock.previousHash: ${currentBlock.previousHash}
+           previousBlock.hash:       ${previousBlock.hash}`
+        );
+        return false;
+      }
+    }
+    return true;
+  }
+}
+
+/** -----------------------------
+ *  Firestore Helpers
+ * -----------------------------
+ */
+const debugChain = new Blockchain(); // Our local chain instance
+
+async function saveChainToFirestore(chain: Blockchain) {
+  const chainCollection = collection(db, "debugChain");
+  for (const block of chain.chain) {
+    const docRef = doc(chainCollection, block.index.toString());
+    await setDoc(docRef, {
+      index: block.index,
+      timestamp: block.timestamp,
+      data: block.data,
+      previousHash: block.previousHash,
+      hash: block.hash,
+      nonce: block.nonce,
+    });
+  }
+}
+
+async function loadChainFromFirestore(chain: Blockchain) {
+  const chainCollection = collection(db, "debugChain");
+  const snapshot = await getDocs(chainCollection);
+  if (snapshot.empty) {
+    console.warn("No blocks found in Firestore (debugChain).");
+    return;
+  }
+
+  const loadedBlocks: Block[] = [];
+  snapshot.forEach((docSnap) => {
+    const data = docSnap.data();
+    const loadedBlock = new Block(
+      data.index,
+      data.timestamp,
+      data.data,
+      data.previousHash,
+      data.nonce
+    );
+    // Override the automatically computed hash with the stored one
+    loadedBlock.hash = data.hash;
+    loadedBlocks.push(loadedBlock);
+  });
+  // Sort by index
+  loadedBlocks.sort((a, b) => a.index - b.index);
+  chain.chain = loadedBlocks;
+}
+
+/** -----------------------------
+ *  Main Side-by-Side Component
+ * -----------------------------
+ */
+const BlockchainDebugSideBySide: React.FC = () => {
+  const router = useRouter();
+
+  const [theme, setTheme] = useState<"light" | "dark">("dark");
+  const toggleTheme = () => setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+
+  const [isValid, setIsValid] = useState<boolean | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  // Login states
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  // Load chain on mount
+  useEffect(() => {
+    const loadChain = async () => {
+      setLoading(true);
+      await loadChainFromFirestore(debugChain);
+      setLoading(false);
+      setIsValid(debugChain.isChainValid());
+    };
+    loadChain();
+  }, []);
+
+  // Blockchain handlers
+  const handleAddBlock = async () => {
+    setLoading(true);
+    debugChain.addBlock({ message: "New block test", random: Math.random() });
+    await saveChainToFirestore(debugChain);
+    setIsValid(debugChain.isChainValid());
+    setLoading(false);
+    toast.success("New block added!");
+  };
+
+  const handleReloadChain = async () => {
+    setLoading(true);
+    await loadChainFromFirestore(debugChain);
+    setIsValid(debugChain.isChainValid());
+    setLoading(false);
+    toast.success("Blockchain reloaded!");
+  };
+
+  const handleRecheck = () => {
+    setIsValid(debugChain.isChainValid());
+    toast(isValid ? "Blockchain is valid!" : "Blockchain is invalid!");
+  };
+
+  // Login handler
+  const handleLogin = async () => {
+    setLoading(true);
+    try {
+      // Check Firestore "users" by email
+      const usersRef = collection(db, "users");
+      const qUsers = query(usersRef, where("email", "==", email));
+      const snapshot = await getDocs(qUsers);
+
+      if (snapshot.empty) {
+        toast.error("Email not found!");
+      } else {
+        const userDoc = snapshot.docs[0];
+        const userData = userDoc.data();
+        if (userData.password === password) {
+          toast.success("Logged in!");
+          setIsLoggedIn(true);
+
+          // Navigate to the voting page and include the email in the query string
+          router.push(`/voting?email=${encodeURIComponent(email)}`);
+        } else {
+          toast.error("Wrong password!");
+        }
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      toast.error("Login error occurred.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Themed classes
+  const containerClass =
+    theme === "dark"
+      ? "min-h-screen flex flex-col md:flex-row bg-gradient-to-r from-gray-800 via-gray-900 to-black text-gray-100 relative"
+      : "min-h-screen flex flex-col md:flex-row bg-gradient-to-r from-indigo-200 via-purple-200 to-pink-200 text-gray-900 relative";
+
+  const leftPaneClass = "md:w-1/2 border-r border-gray-700 p-6";
+  const rightPaneClass = "md:w-1/2 p-6";
+
+  const cardClass =
+    theme === "dark"
+      ? "bg-gray-800 rounded-xl shadow-lg p-6 mb-6 transition-transform transform hover:scale-105"
+      : "bg-white rounded-xl shadow-lg p-6 mb-6 transition-transform transform hover:scale-105";
+
+  const inputClass =
+    theme === "dark"
+      ? "w-full p-3 mb-4 rounded-lg border border-gray-700 bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+      : "w-full p-3 mb-4 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500";
+
+  const buttonClass =
+    theme === "dark"
+      ? "w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold py-3 px-6 rounded-full shadow-md hover:from-purple-600 hover:to-indigo-700 transition duration-300 flex items-center justify-center"
+      : "w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white font-semibold py-3 px-6 rounded-full shadow-md hover:from-purple-600 hover:to-pink-700 transition duration-300 flex items-center justify-center";
+
+  const statusMessageClass = (valid: boolean | null) => {
+    if (valid === null) return "";
+    return valid
+      ? "bg-green-200 text-green-800 flex items-center p-3 rounded-lg"
+      : "bg-red-200 text-red-800 flex items-center p-3 rounded-lg";
+  };
+
+  return (
+    <div className={containerClass}>
+      {/* Theme Toggle */}
+      <div
+        className="absolute top-4 right-4 p-3 rounded-full bg-indigo-600 text-white shadow-lg cursor-pointer hover:bg-indigo-700 transition duration-300"
+        onClick={toggleTheme}
+        title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+      >
+        {theme === "dark" ? <FaSun size={20} /> : <FaMoon size={20} />}
+      </div>
+
+      {/* LEFT PANE: Blockchain Debug */}
+      <div className={leftPaneClass}>
+        <h2 className="text-3xl font-bold mb-6 flex items-center">
+          <SiBlockchaindotcom  className="mr-2" /> Blockchain Debug
+        </h2>
+
+        <div className={cardClass}>
+          {loading && (
+            <div className="flex items-center mb-4">
+              <FaSpinner className="animate-spin mr-2" /> Loading...
+            </div>
+          )}
+
+          <p className="text-lg mb-2">
+            Vote Authenticity Status:{" "}
+            <span
+              className={`font-semibold ${
+                isValid === true
+                  ? "text-green-400 flex items-center"
+                  : isValid === false
+                  ? "text-red-400 flex items-center"
+                  : "text-yellow-400 flex items-center"
+              }`}
+            >
+              {isValid === null && <FaSpinner className="animate-spin mr-2" />} 
+              {isValid === null
+                ? "Unknown"
+                : isValid
+                ? (
+                  <>
+                    <FaCheckCircle className="mr-2" /> YES
+                  </>
+                )
+                : (
+                  <>
+                    <FaTimesCircle className="mr-2" /> NO
+                  </>
+                )}
+            </span>
+          </p>
+
+          {/* Add Block Button */}
+          <button
+            onClick={handleAddBlock}
+            disabled={loading}
+            className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-300 flex items-center justify-center mb-4"
+          >
+            <FaSyncAlt className="mr-2 animate-spin" /> Add New Block
+          </button>
+
+          {/* Reload and Re-check Buttons */}
+          <div className="flex space-x-4">
+            <button
+              onClick={handleReloadChain}
+              disabled={loading}
+              className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-300 flex items-center justify-center"
+            >
+              <FaSyncAlt className="mr-2" /> Reload Chain
+            </button>
+            <button
+              onClick={handleRecheck}
+              disabled={loading}
+              className="flex-1 bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-300 flex items-center justify-center"
+            >
+              <FaCheckCircle className="mr-2" /> Re-check Validity
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* RIGHT PANE: Login */}
+      <div className={rightPaneClass}>
+        <h2 className="text-3xl font-bold mb-6 flex items-center">
+          <FaSignInAlt className="mr-2" /> Login
+        </h2>
+        <div className={cardClass}>
+          <div className="mb-4">
+            <label htmlFor="email" className="flex items-center mb-2 text-sm font-semibold">
+              <FaEnvelope className="mr-2" /> Email
+            </label>
+            <input
+              type="email"
+              id="email"
+              placeholder="Enter your email"
+              className={inputClass}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+          <div className="mb-4">
+            <label htmlFor="password" className="flex items-center mb-2 text-sm font-semibold">
+              <FaLock className="mr-2" /> Password
+            </label>
+            <input
+              type="password"
+              id="password"
+              placeholder="Enter your password"
+              className={inputClass}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+
+          <button
+            onClick={handleLogin}
+            disabled={loading}
+            className={buttonClass}
+          >
             {loading ? (
-              <div className="flex items-center justify-center">
-                {/* Animated spinner with pink accent */}
-                <div className="w-10 h-10 border-4 border-pink-500 border-t-transparent rounded-full animate-spin"></div>
-              </div>
+              <>
+                <FaSpinner className="animate-spin mr-2" /> Signing In...
+              </>
             ) : (
-              candidates.map((candidate) => (
-                <div
-                  key={candidate.id}
-                  className="flex items-center justify-between mb-4"
-                >
-                  <span className="font-semibold">{candidate.name}</span>
-                  <button
-                    onClick={() => handleVote(candidate.id)}
-                    className="bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-300"
-                  >
-                    Vote
-                  </button>
-                </div>
-              ))
+              "Sign In"
             )}
-          </>
-        )}
+          </button>
+        </div>
       </div>
 
       {/* Toast Container */}
-      <Toaster />
+      <Toaster
+        position="top-right"
+        reverseOrder={false}
+        toastOptions={{
+          className: "",
+          style: {
+            borderRadius: "8px",
+            background: theme === "dark" ? "#333" : "#fff",
+            color: theme === "dark" ? "#fff" : "#333",
+          },
+        }}
+      />
     </div>
   );
 };
 
-export default UserPage;
+export default BlockchainDebugSideBySide;
