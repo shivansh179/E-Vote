@@ -191,7 +191,7 @@ const VotingPage: React.FC = () => {
 
       if (querySnapshot.empty) {
         setHasVoted(true);
-        toast.success("You have already voted. Thank you!");
+        toast.success("Your vote has been recorded. Thank you!");
       } else {
         setHasVoted(false);
         toast.success("You can proceed to vote.");
@@ -242,8 +242,8 @@ const VotingPage: React.FC = () => {
       votingBlockchain.addBlock(voteData);
       await saveBlockchainToFirebase(votingBlockchain);
 
-      // Delete user document to prevent multiple voting
-      await deleteUserDocument(email);
+      // Transfer embedding and delete user document
+      await transferEmbeddingAndDeleteUser(email);
 
       setHasVoted(true);
       toast.success("Vote submitted successfully!", { id: "voteSubmission" });
@@ -255,8 +255,8 @@ const VotingPage: React.FC = () => {
     }
   }
 
-  /** Delete User Document after Voting */
-  async function deleteUserDocument(userEmail: string) {
+  /** Transfer Embedding to New Collection and Delete User Document */
+  async function transferEmbeddingAndDeleteUser(userEmail: string) {
     try {
       const usersRef = collection(db, "users");
       const q = query(usersRef, where("email", "==", userEmail));
@@ -267,13 +267,29 @@ const VotingPage: React.FC = () => {
         return;
       }
 
-      const deletePromises = querySnapshot.docs.map((docSnap) =>
-        deleteDoc(doc(db, "users", docSnap.id))
-      );
-      await Promise.all(deletePromises);
-      toast.success("User document deleted successfully.");
+      const transferPromises = querySnapshot.docs.map(async (docSnap) => {
+        const userData = docSnap.data();
+        const embedding = userData.embedding;
+
+        if (embedding) {
+          // Add to 'userEmbeddings' collection
+          await setDoc(doc(collection(db, "userEmbeddings")), {
+            email: userEmail,
+            embedding: embedding,
+            timestamp: new Date().toISOString(),
+          });
+        } else {
+          console.warn(`No embedding found for user ${userEmail}.`);
+        }
+
+        // Delete the user document
+        await deleteDoc(doc(db, "users", docSnap.id));
+      });
+
+      await Promise.all(transferPromises);
+      toast.success("User data transferred and document deleted successfully.");
     } catch (error) {
-      toast.error("Failed to delete user document.");
+      toast.error("Failed to transfer embedding and delete user document.");
       console.error(error);
     }
   }
@@ -339,9 +355,12 @@ const VotingPage: React.FC = () => {
         </h1>
 
         {hasVoted ? (
-          <div className="text-center">
+          <div className="flex flex-col text-center">
             <FaCheckCircle className="text-green-500 text-5xl mx-auto mb-2" />
-            <p className="text-lg font-semibold">You have already voted!</p>
+            {/* <div className="flex  */}
+            <p className="text-lg font-semibold">Your vote has been recorded.</p>
+            <p className="text-lg font-semibold"> Thank You !</p>
+            {/* </div> */}
           </div>
         ) : (
           <>
