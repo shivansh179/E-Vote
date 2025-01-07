@@ -13,7 +13,7 @@ import {
   where,
 } from "firebase/firestore";
 import { db } from "@/firebase"; // Ensure this path is correct based on your project structure
-import toast from "react-hot-toast";
+import toast, { Toaster } from "react-hot-toast";
 import {
   FaSun,
   FaMoon,
@@ -164,49 +164,92 @@ const VotingPage: React.FC = () => {
   const email = searchParams.get("email");
 
   const [theme, setTheme] = useState<"light" | "dark">("dark");
-  const [candidates, setCandidates] = useState<{ id: string; name: string }[]>([]);
+  const [candidates, setCandidates] = useState<{ id: string; name: string }[]>(
+    []
+  );
   const [hasVoted, setHasVoted] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Combined loading state
+  const [voteLoading, setVoteLoading] = useState(false); // Loading for vote submission
   const [blockchainValid, setBlockchainValid] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (!email) {
-      toast.error("No email provided!");
-      router.push("/login");
-      return;
-    }
-    checkIfUserHasVoted(email);
-    fetchCandidates();
-    validateBlockchain();
+    const initialize = async () => {
+      if (!email) {
+        toast.error("No email provided!");
+        router.push("/login");
+        return;
+      }
+
+      try {
+        const canVote = await checkIfUserCanVote(email);
+        if (canVote) {
+          await fetchCandidates();
+          await validateBlockchain();
+        }
+      } catch (error) {
+        toast.error("An unexpected error occurred.");
+        console.error(error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initialize();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [email]);
 
-  /** Check if user has already voted */
-  async function checkIfUserHasVoted(userEmail: string) {
-    setLoading(true);
+  /** Check if user has already voted and verify password_validated */
+  async function checkIfUserCanVote(userEmail: string): Promise<boolean> {
     try {
       const usersRef = collection(db, "users");
       const q = query(usersRef, where("email", "==", userEmail));
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
+        // No user doc found; assume user has voted
         setHasVoted(true);
         toast.success("Your vote has been recorded. Thank you!");
+        setTimeout(() => {
+          router.push("/");
+        }, 3000);
+        return false;
       } else {
-        setHasVoted(false);
-        toast.success("You can proceed to vote.");
+        // User document exists; check checkpoints
+        const userDoc = querySnapshot.docs[0];
+        const userData = userDoc.data();
+
+        const checkpoints: string[] = userData.checkpoints || [];
+
+        if (
+          Array.isArray(checkpoints) &&
+          checkpoints.length > 2 &&
+          checkpoints[2] === "password_validated"
+        ) {
+          // User has passed the password validation checkpoint
+          setHasVoted(false);
+          toast.success("You can proceed to vote.");
+          return true;
+        } else {
+          // User hasn't completed password validation; redirect to /user
+          // toast.error("go")
+          toast.error(
+            "Please complete prior steps before accessing the voting page. Redirecting..."
+          );
+          setTimeout(() => {
+            router.push("/user");
+          }, 1000); // Added delay for user to read the toast
+          return false;
+        }
       }
     } catch (error) {
       toast.error("Error checking voting status.");
       console.error(error);
-    } finally {
-      setLoading(false);
+      return false;
     }
   }
 
   /** Fetch Candidates from Firestore */
   async function fetchCandidates() {
-    setLoading(true);
     try {
       const candidatesSnapshot = await getDocs(collection(db, "candidates"));
       const list = candidatesSnapshot.docs.map((d) => ({
@@ -218,8 +261,6 @@ const VotingPage: React.FC = () => {
     } catch (error) {
       toast.error("Unable to fetch candidates.");
       console.error(error);
-    } finally {
-      setLoading(false);
     }
   }
 
@@ -227,7 +268,7 @@ const VotingPage: React.FC = () => {
   async function handleVote(candidateId: string) {
     if (!email) return;
 
-    setLoading(true);
+    setVoteLoading(true);
     toast.loading("Submitting your vote...", { id: "voteSubmission" });
 
     try {
@@ -251,7 +292,7 @@ const VotingPage: React.FC = () => {
       toast.error("Error submitting vote.", { id: "voteSubmission" });
       console.error(error);
     } finally {
-      setLoading(false);
+      setVoteLoading(false);
     }
   }
 
@@ -295,18 +336,24 @@ const VotingPage: React.FC = () => {
   }
 
   /** Validate Blockchain Integrity */
-  function validateBlockchain() {
-    const isValid = votingBlockchain.isChainValid();
-    setBlockchainValid(isValid);
-    if (isValid) {
-      toast.success("Vote is valid.");
-    } else {
-      toast.error("Vote integrity compromised!");
+  async function validateBlockchain() {
+    try {
+      const isValid = votingBlockchain.isChainValid();
+      setBlockchainValid(isValid);
+      if (isValid) {
+        toast.success("Blockchain is valid.");
+      } else {
+        toast.error("Blockchain integrity compromised!");
+      }
+    } catch (error) {
+      toast.error("Error validating blockchain.");
+      console.error(error);
+      setBlockchainValid(false);
     }
   }
 
   /** Toggle Theme */
-  const toggleTheme = () => {
+  const toggleThemeMode = () => {
     setTheme((prev) => (prev === "dark" ? "light" : "dark"));
   };
 
@@ -338,12 +385,39 @@ const VotingPage: React.FC = () => {
   const ThemeToggleButton = () => (
     <div
       className="absolute top-4 right-4 p-3 rounded-full bg-indigo-600 text-white shadow-md cursor-pointer"
-      onClick={toggleTheme}
+      onClick={toggleThemeMode}
       aria-label="Toggle Theme"
     >
       {theme === "dark" ? <FaSun /> : <FaMoon />}
     </div>
   );
+
+  /** Full-Screen Loading Spinner Component */
+  const FullScreenLoading = () => (
+    <div
+      className={
+        theme === "dark"
+          ? "flex justify-center items-center h-screen bg-gradient-to-r from-blue-900 via-purple-900 to-indigo-900"
+          : "flex justify-center items-center h-screen bg-gradient-to-r from-blue-50 via-purple-50 to-indigo-50"
+      }
+    >
+      <FaSpinner className="animate-spin text-indigo-500 text-6xl" />
+    </div>
+  );
+
+  /** Voting Submission Spinner Component */
+  const VoteLoadingSpinner = () => (
+    <div className="flex justify-center items-center">
+      <FaSpinner className="animate-spin text-indigo-500 text-4xl mr-2" />
+      <span>Submitting your vote...</span>
+    </div>
+  );
+
+  /** Main Render Logic */
+  if (isLoading) {
+    // While checking authentication and loading data, show full-screen loading spinner
+    return <FullScreenLoading />;
+  }
 
   return (
     <div className={containerClass}>
@@ -357,10 +431,8 @@ const VotingPage: React.FC = () => {
         {hasVoted ? (
           <div className="flex flex-col text-center">
             <FaCheckCircle className="text-green-500 text-5xl mx-auto mb-2" />
-            {/* <div className="flex  */}
             <p className="text-lg font-semibold">Your vote has been recorded.</p>
-            <p className="text-lg font-semibold"> Thank You !</p>
-            {/* </div> */}
+            <p className="text-lg font-semibold">Thank You!</p>
           </div>
         ) : (
           <>
@@ -375,33 +447,58 @@ const VotingPage: React.FC = () => {
               </span>
             </div>
 
-            {loading ? (
-              <div className="text-center text-yellow-400">
-                <FaSpinner className="animate-spin mx-auto mb-2" />
-                Loading...
+            {blockchainValid === false ? (
+              <div className="text-center text-red-400">
+                <FaCheckCircle className="text-red-500 text-5xl mx-auto mb-2" />
+                <p className="text-lg font-semibold">
+                  Blockchain Integrity Compromised!
+                </p>
               </div>
             ) : (
-              candidates.map((candidate) => (
-                <button
-                  key={candidate.id}
-                  className={`${buttonCommon} bg-indigo-600 hover:bg-indigo-700 text-white`}
-                  onClick={() => handleVote(candidate.id)}
-                  disabled={loading}
-                >
-                  {candidate.name}
-                </button>
-              ))
+              <>
+                {candidates.length === 0 ? (
+                  <div className="text-center text-yellow-400">
+                    <FaSpinner className="animate-spin mx-auto mb-2" />
+                    No candidates available.
+                  </div>
+                ) : (
+                  candidates.map((candidate) => (
+                    <button
+                      key={candidate.id}
+                      className={`${buttonCommon} bg-indigo-600 hover:bg-indigo-700 text-white`}
+                      onClick={() => handleVote(candidate.id)}
+                      disabled={voteLoading}
+                    >
+                      {candidate.name}
+                    </button>
+                  ))
+                )}
+              </>
             )}
           </>
         )}
 
-        {loading && (
-          <div className="text-center text-yellow-400">
-            <FaSpinner className="animate-spin mx-auto mb-2" />
-            Submitting vote...
+        {/* Vote Submission Loading Indicator */}
+        {voteLoading && (
+          <div className="mt-4 flex justify-center items-center">
+            <VoteLoadingSpinner />
           </div>
         )}
       </div>
+
+      {/* Toast Container */}
+      <Toaster
+        position="top-right"
+        reverseOrder={false}
+        toastOptions={{
+          className: "",
+          style: {
+            borderRadius: "8px",
+            background: theme === "dark" ? "#333" : "#fff",
+            color: theme === "dark" ? "#fff" : "#333",
+          },
+        }}
+      />
     </div>
   );
 };

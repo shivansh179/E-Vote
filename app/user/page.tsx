@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { db } from "@/firebase";
 import {
   collection,
@@ -11,12 +11,13 @@ import {
   setDoc,
   query,
   where,
+  updateDoc,
+  arrayUnion,
 } from "firebase/firestore";
 import crypto from "crypto";
 import {
   FaSun,
   FaMoon,
-  FaSignInAlt,
   FaSyncAlt,
   FaCheckCircle,
   FaTimesCircle,
@@ -190,17 +191,19 @@ async function loadChainFromFirestore(chain: Blockchain) {
  */
 const BlockchainDebugSideBySide: React.FC = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [theme, setTheme] = useState<"light" | "dark">("dark");
-  const toggleTheme = () => setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+  const toggleTheme = () =>
+    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
 
   const [isValid, setIsValid] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Login states
+  // Authentication states
+  const [step, setStep] = useState<"email" | "password">("email");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   // Dialog states
   const [dialog, setDialog] = useState<{
@@ -213,8 +216,20 @@ const BlockchainDebugSideBySide: React.FC = () => {
     type: "success",
   });
 
+  // Extract email from query parameters
+  const emailParam = searchParams.get("email") || "";
+  useEffect(() => {
+    if (emailParam.trim()) {
+      setEmail(emailParam);
+      // Automatically proceed to password step if email is provided
+      // Alternatively, you can keep it in email step
+      // setStep("password");
+    }
+  }, [emailParam]);
+
   // Load chain on mount
   useEffect(() => {
+    confirm("Make sure to complete all the steps till here otherwise you will not be able to vote and will be redirected here.")
     const loadChain = async () => {
       setLoading(true);
       await loadChainFromFirestore(debugChain);
@@ -223,6 +238,200 @@ const BlockchainDebugSideBySide: React.FC = () => {
     };
     loadChain();
   }, []);
+
+  /**
+   * Helper Function to Calculate Euclidean Distance between two embeddings
+   */
+  const euclideanDistance = (
+    emb1: Float32Array,
+    emb2: Float32Array
+  ): number => {
+    let sum = 0;
+    for (let i = 0; i < emb1.length; i++) {
+      sum += Math.pow(emb1[i] - emb2[i], 2);
+    }
+    return Math.sqrt(sum);
+  };
+
+  /**
+   * Check User's Second Checkpoint (Index 1)
+   */
+  const checkCheckpoints = async (userEmail: string) => {
+    try {
+      setLoading(true);
+      setIsValid(null);
+      // Firestore reference
+      const usersRef = collection(db, "users");
+      // Query for a doc with matching email
+      const q = query(usersRef, where("email", "==", userEmail));
+      const querySnapshot = await getDocs(q);
+
+      if (querySnapshot.empty) {
+        // No user doc for this email
+        toast.error(
+          "No user found with that email. Redirecting to /owner_check..."
+        );
+        setTimeout(() => {
+          router.push("/owner_check");
+        }, 2000);
+        return;
+      }
+
+      // Assume only one doc per email
+      const userDoc = querySnapshot.docs[0];
+      const userData = userDoc.data();
+
+      // Check if 'checkpoints' exists and is an array with at least 2 elements
+      if (
+        !Array.isArray(userData.checkpoints) ||
+        userData.checkpoints.length <= 1
+      ) {
+        toast.error(
+          "Incomplete setup. Please complete face verification first. Redirecting..."
+        );
+        setTimeout(() => {
+          router.push("/owner_check");
+        }, 2000);
+        return;
+      }
+
+      // Get the checkpoint at index 1
+      const secondCheckpoint = userData.checkpoints[1];
+
+      if (secondCheckpoint !== "pin_validated") {
+        toast.error(
+          "Please complete prior steps before accessing this page. Redirecting..."
+        );
+        setTimeout(() => {
+          router.push("/owner_check");
+        }, 2000);
+        return;
+      }
+
+      // If all checks pass
+      setIsValid(true);
+      setLoading(false);
+      toast.success("All prior steps completed. Please enter your password.");
+      setStep("password");
+    } catch (error) {
+      console.error("Error verifying checkpoints:", error);
+      toast.error("Error verifying checkpoints. Redirecting...");
+      setTimeout(() => {
+        router.push("/owner_check");
+      }, 2000);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
+   * Handle Email Submission and Checkpoints
+   */
+  const handleEmailSubmit = async () => {
+    if (!email.trim()) {
+      toast.error("Please enter your email.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      toast.loading("Verifying email and checkpoints...", { id: "emailCheck" });
+
+      // Verify checkpoints
+      await checkCheckpoints(email);
+
+      toast.dismiss("emailCheck");
+    } catch (error) {
+      console.error("Error during email submission:", error);
+      toast.dismiss("emailCheck");
+      toast.error("Error verifying email. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
+   * Handle Password Verification
+   */
+  const handlePasswordCheck = async () => {
+    if (!password.trim()) {
+      toast.error("Please enter your password.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      toast.loading("Verifying password...", { id: "passwordCheck" });
+
+      // Firestore reference
+      const usersRef = collection(db, "users");
+      // Query for a doc with matching email
+      const q = query(usersRef, where("email", "==", email));
+      const querySnapshot = await getDocs(q);
+
+      if (querySnapshot.empty) {
+        // No user doc for this email
+        toast.error(
+          "No user found with that email. Redirecting..."
+        );
+        setTimeout(() => {
+          router.push("/owner_check");
+        }, 2000);
+        return;
+      }
+
+      // Assume only one doc per email
+      const userDocSnapshot = querySnapshot.docs[0];
+      const userData = userDocSnapshot.data();
+
+      // Check if the password matches
+      if (userData.password === password) {
+        // Password match
+        toast.dismiss("passwordCheck");
+        toast.success("Password validated! You are authorized.");
+
+        // Update checkpoints with 'password_validated'
+        try {
+          const userDocRef = doc(db, "users", userDocSnapshot.id);
+          await updateDoc(userDocRef, {
+            checkpoints: arrayUnion("password_validated"),
+          });
+          console.log("Checkpoint 'password_validated' added successfully.");
+        } catch (updateError) {
+          console.error("Error updating checkpoints:", updateError);
+          toast.error(
+            "Password validated, but failed to update checkpoints."
+          );
+          // Optionally, you can redirect or handle this scenario differently
+        }
+
+        // Redirect after a short delay
+        setTimeout(() => {
+          // Preserve the existing email in the URL if needed
+          router.push(`/voting?email=${encodeURIComponent(email)}`); // Replace with your desired route
+        }, 1500);
+      } else {
+        // Password mismatch
+        toast.dismiss("passwordCheck");
+        toast.error("Invalid password. Access denied.");
+      }
+    } catch (error) {
+      console.error("Error verifying password:", error);
+      toast.dismiss("passwordCheck");
+      toast.error("Error verifying password. Access denied.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Dialog helper
+  const showDialog = (message: string, type: "success" | "error") => {
+    setDialog({ visible: true, message, type });
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+      setDialog({ visible: false, message: "", type: "success" });
+    }, 5000);
+  };
 
   // Blockchain handlers
   const handleAddBlock = async () => {
@@ -254,57 +463,9 @@ const BlockchainDebugSideBySide: React.FC = () => {
     toast(validity ? "Blockchain is valid!" : "Blockchain is invalid!");
   };
 
-  // Login handler
-  const handleLogin = async () => {
-    setLoading(true);
-    try {
-      // Check Firestore "users" by email
-      const usersRef = collection(db, "users");
-      const qUsers = query(usersRef, where("email", "==", email));
-      const snapshot = await getDocs(qUsers);
-
-      if (snapshot.empty) {
-        toast.error("Email not found!");
-      } else {
-        const userDoc = snapshot.docs[0];
-        const userData = userDoc.data();
-        if (userData.password === password) {
-          toast.success("Logged in!");
-          setIsLoggedIn(true);
-
-          // Navigate to the voting page and include the email in the query string
-          router.push(`/voting?email=${encodeURIComponent(email)}`);
-        } else {
-          toast.error("Wrong password!");
-        }
-      }
-    } catch (error) {
-      console.error("Login error:", error);
-      toast.error("Login error occurred.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Dialog helper
-  const showDialog = (message: string, type: "success" | "error") => {
-    setDialog({ visible: true, message, type });
-    // Auto-hide after 5 seconds
-    setTimeout(() => {
-      setDialog({ visible: false, message: "", type: "success" });
-    }, 5000);
-  };
-
-  // Helper Function to Calculate Euclidean Distance between two embeddings
-  const euclideanDistance = (emb1: Float32Array, emb2: Float32Array): number => {
-    let sum = 0;
-    for (let i = 0; i < emb1.length; i++) {
-      sum += Math.pow(emb1[i] - emb2[i], 2);
-    }
-    return Math.sqrt(sum);
-  };
-
-  // Themed classes
+  /**
+   * Themed classes
+   */
   const containerClass =
     theme === "dark"
       ? "min-h-screen flex flex-col md:flex-row bg-gradient-to-r from-gray-800 via-gray-900 to-black text-gray-100 relative"
@@ -336,13 +497,21 @@ const BlockchainDebugSideBySide: React.FC = () => {
   };
 
   return (
-    <Suspense fallback={<div className="flex justify-center items-center h-screen"><FaSpinner className="animate-spin text-indigo-500 text-4xl" /></div>}>
+    <Suspense
+      fallback={
+        <div className="flex justify-center items-center h-screen">
+          <FaSpinner className="animate-spin text-indigo-500 text-4xl" />
+        </div>
+      }
+    >
       <div className={containerClass}>
         {/* Theme Toggle */}
         <div
           className="absolute top-4 right-4 p-3 rounded-full bg-indigo-600 text-white shadow-lg cursor-pointer hover:bg-indigo-700 transition duration-300"
           onClick={toggleTheme}
-          title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          title={
+            theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
+          }
         >
           {theme === "dark" ? <FaSun size={20} /> : <FaMoon size={20} />}
         </div>
@@ -377,15 +546,15 @@ const BlockchainDebugSideBySide: React.FC = () => {
                     ? "Unknown"
                     : isValid
                     ? (
-                      <>
-                        <FaCheckCircle className="mr-2" /> YES
-                      </>
-                    )
+                        <>
+                          <FaCheckCircle className="mr-2" /> YES
+                        </>
+                      )
                     : (
-                      <>
-                        <FaTimesCircle className="mr-2" /> NO
-                      </>
-                    )}
+                        <>
+                          <FaTimesCircle className="mr-2" /> NO
+                        </>
+                      )}
                 </span>
               </p>
 
@@ -401,7 +570,9 @@ const BlockchainDebugSideBySide: React.FC = () => {
             {dialog.visible && (
               <div
                 className={`mt-4 p-4 rounded-lg shadow-md ${
-                  dialog.type === "success" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                  dialog.type === "success"
+                    ? "bg-green-100 text-green-800"
+                    : "bg-red-100 text-red-800"
                 } transition-opacity duration-300`}
               >
                 <p>{dialog.message}</p>
@@ -437,52 +608,111 @@ const BlockchainDebugSideBySide: React.FC = () => {
           </div>
         </div>
 
-        {/* RIGHT PANE: Login */}
+        {/* RIGHT PANE: Authentication Form */}
         <div className={rightPaneClass}>
           <h2 className="text-3xl font-bold mb-6 flex items-center">
-            <FaSignInAlt className="mr-2" /> Login
+            <FaLock className="mr-2" /> Authentication
           </h2>
           <div className={cardClass}>
-            <div className="mb-4">
-              <label htmlFor="email" className="flex items-center mb-2 text-sm font-semibold">
-                <FaEnvelope className="mr-2" /> Email
-              </label>
-              <input
-                type="email"
-                id="email"
-                placeholder="Enter your email"
-                className={inputClass}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <div className="mb-4">
-              <label htmlFor="password" className="flex items-center mb-2 text-sm font-semibold">
-                <FaLock className="mr-2" /> Password
-              </label>
-              <input
-                type="password"
-                id="password"
-                placeholder="Enter your password"
-                className={inputClass}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
+            {/* Step 1: Email Confirmation */}
+            {step === "email" && (
+              <>
+                {/* Email Input */}
+                <div className="mb-6">
+                  <label
+                    htmlFor="email"
+                    className="flex items-center mb-2 text-sm font-semibold"
+                  >
+                    <FaEnvelope className="mr-2" /> Email
+                  </label>
+                  <input
+                    id="email"
+                    type="email"
+                    placeholder="Enter your email"
+                    className={inputClass}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
 
-            <button
-              onClick={handleLogin}
-              disabled={loading}
-              className={buttonClass}
-            >
-              {loading ? (
-                <>
-                  <FaSpinner className="animate-spin mr-2" /> Signing In...
-                </>
-              ) : (
-                "Sign In"
-              )}
-            </button>
+                {/* Verify Email Button */}
+                <button
+                  onClick={handleEmailSubmit}
+                  disabled={loading}
+                  className={`w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold py-3 px-6 rounded-full shadow-md hover:from-purple-600 hover:to-indigo-700 transition duration-300 flex items-center justify-center ${
+                    loading ? "cursor-not-allowed opacity-50" : ""
+                  }`}
+                >
+                  {loading ? (
+                    <>
+                      <FaSpinner className="animate-spin mr-2" /> Verifying...
+                    </>
+                  ) : (
+                    "Verify Email"
+                  )}
+                </button>
+              </>
+            )}
+
+            {/* Step 2: Password Submission */}
+            {step === "password" && (
+              <>
+                {/* Password Input */}
+                <div className="mb-6">
+                  <label
+                    htmlFor="password"
+                    className="flex items-center mb-2 text-sm font-semibold"
+                  >
+                    <FaLock className="mr-2" /> Password
+                  </label>
+                  <input
+                    type="password"
+                    id="password"
+                    placeholder="Enter your password"
+                    className={inputClass}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+
+                {/* Verify Password Button */}
+                <button
+                  onClick={handlePasswordCheck}
+                  disabled={loading || !isValid}
+                  className={`${buttonClass} ${
+                    !isValid ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
+                >
+                  {loading ? (
+                    <>
+                      <FaSpinner className="animate-spin mr-2" /> Verifying...
+                    </>
+                  ) : (
+                    <>
+                      <FaCheckCircle className="mr-2" /> Verify Password
+                    </>
+                  )}
+                </button>
+              </>
+            )}
+
+            {/* Status / Result Message */}
+            {!loading && dialog.visible && (
+              <div
+                className={`mt-6 py-3 px-4 rounded-lg flex flex-col items-center justify-center ${
+                  dialog.type === "success"
+                    ? "bg-green-100 text-green-700"
+                    : "bg-red-100 text-red-700"
+                }`}
+              >
+                {dialog.type === "success" ? (
+                  <FaCheckCircle className="mr-2 text-2xl" />
+                ) : (
+                  <FaTimesCircle className="mr-2 text-2xl" />
+                )}
+                <p className="text-center">{dialog.message}</p>
+              </div>
+            )}
           </div>
         </div>
 

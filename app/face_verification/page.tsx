@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, query, where, getDocs, updateDoc, doc, arrayUnion } from "firebase/firestore"; // Import updateDoc, doc, arrayUnion
 import { db } from "@/firebase";
 import * as faceapi from "face-api.js";
 import { FaMoon, FaSun, FaCamera, FaCheckCircle, FaTimesCircle, FaStop, FaSpinner, FaEnvelope } from "react-icons/fa";
@@ -154,8 +154,8 @@ const FaceValidation: React.FC = () => {
       }
 
       // For simplicity, assume we only expect one user doc per email
-      let userDoc = userSnapshot.docs[0];
-      const userData = userDoc.data();
+      let userDocSnapshot = userSnapshot.docs[0];
+      const userData = userDocSnapshot.data();
 
       if (!userData.embedding) {
         setStatus("This user does not have a face embedding on file.");
@@ -192,11 +192,31 @@ const FaceValidation: React.FC = () => {
 
       // 4. Check threshold (0.6 is typical for face-api)
       if (distance < 0.6) {
-        setStatus("Face recognized. Redirecting...");
-        toast.success("Face recognized! Redirecting...");
-        setTimeout(() => {
-          router.push("/owner_check");
-        }, 1500);
+        setStatus("Face recognized. Updating checkpoints...");
+        const recognitionToastId = toast.loading("Updating checkpoints...");
+
+        try {
+          // Reference to the specific user document
+          const userDocRef = doc(db, "users", userDocSnapshot.id);
+
+          // Update the 'checkpoints' field by adding 'face_detected'
+          await updateDoc(userDocRef, {
+            checkpoints: arrayUnion("face_detected"),
+          });
+
+          toast.dismiss(recognitionToastId);
+          setStatus("Face recognized. Redirecting...");
+          toast.success("Face recognized! Redirecting...");
+          stopCamera();
+          setTimeout(() => {
+            router.push("/owner_check");
+          }, 1500);
+        } catch (updateError) {
+          const updateErrorMessage =
+            updateError instanceof Error ? updateError.message : "Unknown error during checkpoint update.";
+          setStatus(`Error updating checkpoints: ${updateErrorMessage}`);
+          toast.error(`Error updating checkpoints: ${updateErrorMessage}`);
+        }
       } else {
         setStatus(
           `Face not recognized (distance = ${distance.toFixed(2)}). Access denied.`
